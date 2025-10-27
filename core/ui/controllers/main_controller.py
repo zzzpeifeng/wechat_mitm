@@ -8,6 +8,7 @@ from core.ui.controllers.proxy_controller import ProxyController
 from core.ui.controllers.data_collector import DataCollector
 from core.utils.database import get_db_manager
 
+
 class MainController(QObject):
     """
     主控制器 - 协调UI和业务逻辑
@@ -77,7 +78,7 @@ class MainController(QObject):
         """MitmProxy服务开关切换"""
         if not self.is_mitm_running:
             # 启动服务
-            success = self.proxy_controller.start_mitmproxy()
+            success = self.proxy_controller.start_mitmproxy(self.view.log_message)
             if success:
                 self.is_mitm_running = True
                 self.view.mitm_service_btn.setText("停止 MitmProxy 服务")

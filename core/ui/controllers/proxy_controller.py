@@ -6,6 +6,7 @@ import signal
 import logging
 from typing import Optional
 
+
 class ProxyController:
     """
     代理控制器 - 管理mitmproxy服务和系统代理
@@ -15,7 +16,7 @@ class ProxyController:
         self.mitm_process: Optional[subprocess.Popen] = None
         self.logger = logging.getLogger(__name__)
 
-    def start_mitmproxy(self) -> bool:
+    def start_mitmproxy(self, log_callback=None) -> bool:
         """
         启动mitmproxy服务
 
@@ -23,10 +24,25 @@ class ProxyController:
             bool: 启动是否成功
         """
         try:
+            # 检查mitmdump是否可用
+            import shutil
+            if not shutil.which("mitmdump"):
+                self.logger.error("mitmdump命令未找到，请确保mitmproxy已正确安装")
+                return False
+
             # 构建mitmproxy命令
+
+            # 使用绝对路径或确保路径正确
+            handler_path = os.path.join(os.path.dirname(__file__), "..", "..", 'scripts', "mitmproxy_handler.py")
+            handler_path = os.path.abspath(handler_path)
+
+            if not os.path.exists(handler_path):
+                self.logger.error(f"mitmproxy处理脚本未找到: {handler_path}")
+                return False
+
             cmd = [
                 "mitmdump",
-                "-s", "core/mitmproxy_handler.py",
+                "-s", handler_path,
                 "--listen-port", "8080",
                 "--ssl-insecure"  # 忽略SSL证书验证
             ]
@@ -36,8 +52,43 @@ class ProxyController:
                 cmd,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
-                text=True
+                text=True,
+                bufsize=1,  # 行缓冲
+                universal_newlines=True
             )
+
+            # 启动线程来读取输出
+            import threading
+
+            def read_output(pipe, prefix=""):
+                try:
+                    for line in iter(pipe.readline, ''):
+                        if log_callback:
+                            log_callback(f"[{prefix}] {line.rstrip()}")
+                        else:
+                            self.logger.info(f"[{prefix}] {line.rstrip()}")
+                except Exception as e:
+                    self.logger.error(f"读取mitmproxy输出时出错: {e}")
+                finally:
+                    pipe.close()
+
+            threading.Thread(target=read_output,
+                             args=(self.mitm_process.stdout, "OUT"),
+                             daemon=True).start()
+            threading.Thread(target=read_output,
+                             args=(self.mitm_process.stderr, "ERR"),
+                             daemon=True).start()
+
+            # 给进程一点时间启动
+            import time
+            time.sleep(1)
+
+            # 检查进程是否仍在运行
+            if self.mitm_process.poll() is not None:
+                # 进程已经退出，读取错误信息
+                stdout, stderr = self.mitm_process.communicate()
+                self.logger.error(f"mitmproxy启动失败: {stderr}")
+                return False
 
             self.logger.info("mitmproxy服务启动成功")
             return True
@@ -53,7 +104,7 @@ class ProxyController:
                 # 在Windows上使用taskkill，其他平台使用terminate
                 if platform.system() == "Windows":
                     subprocess.run(["taskkill", "/F", "/PID", str(self.mitm_process.pid)],
-                                 capture_output=True)
+                                   capture_output=True)
                 else:
                     self.mitm_process.terminate()
                     self.mitm_process.wait(timeout=5)

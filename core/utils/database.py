@@ -6,7 +6,7 @@ import os
 import logging
 from datetime import datetime
 from config.settings import DatabaseConfig  # 导入配置类
-
+from urllib.parse import quote_plus
 
 class MongoDBManager:
     """
@@ -37,8 +37,8 @@ class MongoDBManager:
             mongodb_port = DatabaseConfig.MONGODB_PORT
             mongodb_database = DatabaseConfig.MONGODB_DATABASE
             mongodb_collection = os.getenv('MONGODB_COLLECTION', 'chain_cookies')  # collection仍从环境变量获取
-            mongodb_username = DatabaseConfig.MONGODB_USERNAME
-            mongodb_password = DatabaseConfig.MONGODB_PASSWORD
+            mongodb_username = quote_plus(DatabaseConfig.MONGODB_USERNAME)
+            mongodb_password = quote_plus(DatabaseConfig.MONGODB_PASSWORD)
 
             # 构建连接字符串
             if mongodb_username and mongodb_password:

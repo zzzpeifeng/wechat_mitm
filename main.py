@@ -3,8 +3,8 @@ import sys
 import logging
 from PyQt5.QtWidgets import QApplication
 
-from ui.views.main_window import MitmProxyMainView
-from ui.controllers.main_controller import MainController
+from core.ui.views.main_window import MitmProxyMainView
+from core.ui.controllers.main_controller import MainController
 
 def setup_logging():
     """设置日志配置"""

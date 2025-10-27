@@ -6,7 +6,9 @@ from PyQt5.QtWidgets import (
     QLineEdit
 )
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QFont
+from PyQt5.QtGui import QFont, QTextCursor
+
+
 
 class MitmProxyMainView(QMainWindow):
     """
@@ -44,6 +46,13 @@ class MitmProxyMainView(QMainWindow):
         # 日志显示区域
         log_layout = self._create_log_area()
         main_layout.addLayout(log_layout)
+
+    def log_message(self, message: str):
+        """向日志区域添加消息"""
+        self.log_text.append(message)
+        # 自动滚动到底部
+        self.log_text.moveCursor(QTextCursor.End)
+
 
     def _create_title_label(self) -> QLabel:
         """创建标题标签"""
