@@ -23,9 +23,11 @@ class ChainCookieInterceptor:
 
     def __init__(self):
         """初始化拦截器"""
+        print('ChainCookieInterceptor 初始化')
         self.db_manager = get_db_manager()
         self.target_domains = []  # 目标域名列表
-        self.is_collecting = False  # 是否正在收集数据
+        self.is_collecting = True  # 是否正在收集数据
+        print('ChainCookieInterceptor 完成')
 
     def set_target_domains(self, domains: list):
         """
@@ -58,10 +60,12 @@ class ChainCookieInterceptor:
             bool: 是否为目标域名
         """
         if not self.target_domains:
+            logger.info("未设置目标域名")
             return True  # 如果没有设置目标域名，则匹配所有
-
+        logger.info(f"检查域名: {host}")
         for domain in self.target_domains:
             if domain in host or host.endswith(domain):
+                logger.info(f"匹配到目标域名: {domain}")
                 return True
         return False
 
@@ -84,7 +88,7 @@ class ChainCookieInterceptor:
             return chain_match.group(1).strip()
         return None
 
-    @concurrent
+    # @concurrent
     def request(self, flow: http.HTTPFlow) -> None:
         """
         处理请求事件
@@ -92,8 +96,11 @@ class ChainCookieInterceptor:
         Args:
             flow (http.HTTPFlow): HTTP 流对象
         """
+
+        logger.info(f"请求到达: {flow.request.method} {flow.request.url}")
         # 检查是否启用数据收集
         if not self.is_collecting:
+            logger.info(f"数据收集未启用：{self.is_collecting}")
             return
 
         # 获取请求信息
@@ -101,6 +108,8 @@ class ChainCookieInterceptor:
         host = request.host.lower()
 
         # 检查是否为目标域名
+        logger.info(f"处理请求: {request.method} {request.path}")
+
         if not self.is_target_domain(host):
             return
 
@@ -159,7 +168,9 @@ class ChainCookieInterceptor:
 
 
 # 创建全局实例
+print("Before creating global interceptor instance")
 interceptor = ChainCookieInterceptor()
+print("Global interceptor instance created successfully")
 
 
 def configure(updated: dict) -> None:
@@ -182,10 +193,14 @@ def request(flow: http.HTTPFlow) -> None:
     interceptor.request(flow)
 
 
+print("Script loading started")
+
+
 def start():
     """
     启动脚本时的初始化
     """
+    print("START FUNCTION CALLED")  # 确保能看到输出
     logger.info("Chain Cookie 拦截器启动")
 
 
@@ -194,3 +209,6 @@ def done():
     脚本结束时的清理工作
     """
     logger.info("Chain Cookie 拦截器关闭")
+
+
+print("Script loading completed")

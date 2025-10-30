@@ -41,13 +41,13 @@ class ProxyController:
                 return False
 
             cmd = [
-                "mitmdump",
+                'mitmdump',
                 "-s", handler_path,
-                "--listen-port", "8080",
-                "--ssl-insecure"  # 忽略SSL证书验证
+                "--listen-port", "8081",
+                # "--ssl-insecure"  # 忽略SSL证书验证
             ]
 
-            # 启动mitmproxy进程
+            # CMD启动mitmproxy进程
             self.mitm_process = subprocess.Popen(
                 cmd,
                 stdout=subprocess.PIPE,
@@ -63,10 +63,10 @@ class ProxyController:
             def read_output(pipe, prefix=""):
                 try:
                     for line in iter(pipe.readline, ''):
-                        if log_callback:
-                            log_callback(f"[{prefix}] {line.rstrip()}")
-                        else:
-                            self.logger.info(f"[{prefix}] {line.rstrip()}")
+                        # if log_callback:
+                        #     log_callback(f"[{prefix}] {line.rstrip()}")
+                        # else:
+                        self.logger.info(f"[{prefix}] {line.rstrip()}")
                 except Exception as e:
                     self.logger.error(f"读取mitmproxy输出时出错: {e}")
                 finally:
@@ -207,12 +207,12 @@ class ProxyController:
         try:
             # 设置HTTP代理
             subprocess.run([
-                "networksetup", "-setwebproxy", "Wi-Fi", "127.0.0.1", "8080"
+                "networksetup", "-setwebproxy", "Wi-Fi", "127.0.0.1", "8081"
             ], check=True, capture_output=True)
 
             # 设置HTTPS代理
             subprocess.run([
-                "networksetup", "-setsecurewebproxy", "Wi-Fi", "127.0.0.1", "8080"
+                "networksetup", "-setsecurewebproxy", "Wi-Fi", "127.0.0.1", "8081"
             ], check=True, capture_output=True)
 
             # 启用代理
