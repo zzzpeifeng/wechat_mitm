@@ -8,6 +8,7 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont, QTextCursor
 
+from core.ui.views.components.control_panel import ControlPanel
 
 
 class MitmProxyMainView(QMainWindow):
@@ -49,10 +50,9 @@ class MitmProxyMainView(QMainWindow):
 
     def log_message(self, message: str):
         """向日志区域添加消息"""
-        self.log_text.append(message)
+        self.log_panel.log_text.append(message)
         # 自动滚动到底部
-        self.log_text.moveCursor(QTextCursor.End)
-
+        self.log_panel.log_text.moveCursor(QTextCursor.End)
 
     def _create_title_label(self) -> QLabel:
         """创建标题标签"""
@@ -68,96 +68,33 @@ class MitmProxyMainView(QMainWindow):
         """创建控制区域布局"""
         control_layout = QHBoxLayout()
 
-        # 数据收集控制组
-        collect_group = QGroupBox("数据收集控制")
-        collect_layout = QVBoxLayout(collect_group)
-
-        self.collect_checkbox = QCheckBox("启用数据收集")
-        self.collect_checkbox.setObjectName("collectCheckbox")
-        collect_layout.addWidget(self.collect_checkbox)
-
-        domain_layout = QHBoxLayout()
-        domain_layout.addWidget(QLabel("目标域名:"))
-        self.domain_input = QLineEdit()
-        self.domain_input.setPlaceholderText("输入目标域名，多个用逗号分隔")
-        self.domain_input.setObjectName("domainInput")
-        domain_layout.addWidget(self.domain_input)
-        collect_layout.addLayout(domain_layout)
-
-        # 服务控制组
-        service_group = QGroupBox("服务控制")
-        service_layout = QVBoxLayout(service_group)
-
-        self.mitm_service_btn = QPushButton("启动 MitmProxy 服务")
-        self.mitm_service_btn.setCheckable(True)
-        self.mitm_service_btn.setObjectName("mitmServiceBtn")
-        service_layout.addWidget(self.mitm_service_btn)
-
-        self.proxy_btn = QPushButton("启用全局代理")
-        self.proxy_btn.setCheckable(True)
-        self.proxy_btn.setObjectName("proxyBtn")
-        service_layout.addWidget(self.proxy_btn)
-
-        control_layout.addWidget(collect_group)
-        control_layout.addWidget(service_group)
+        # 使用完整的 ControlPanel 替代手工创建的控件
+        self.control_panel = ControlPanel()
+        control_layout.addWidget(self.control_panel)
 
         return control_layout
 
     def _create_status_area(self) -> QHBoxLayout:
         """创建状态显示区域"""
+        from core.ui.views.components.status_panel import StatusPanel
+
         status_layout = QHBoxLayout()
 
-        # 服务状态组
-        service_group = QGroupBox("服务状态")
-        service_layout = QVBoxLayout(service_group)
-
-        self.mitm_status_label = QLabel("MitmProxy: 未运行")
-        self.mitm_status_label.setObjectName("mitmStatusLabel")
-        service_layout.addWidget(self.mitm_status_label)
-
-        self.proxy_status_label = QLabel("全局代理: 未启用")
-        self.proxy_status_label.setObjectName("proxyStatusLabel")
-        service_layout.addWidget(self.proxy_status_label)
-
-        self.db_status_label = QLabel("数据库: 未连接")
-        self.db_status_label.setObjectName("dbStatusLabel")
-        service_layout.addWidget(self.db_status_label)
-
-        # 数据统计组
-        stats_group = QGroupBox("数据统计")
-        stats_layout = QVBoxLayout(stats_group)
-
-        self.collected_count_label = QLabel("已收集数据: 0 条")
-        self.collected_count_label.setObjectName("collectedCountLabel")
-        stats_layout.addWidget(self.collected_count_label)
-
-        self.last_update_label = QLabel("最后更新: --")
-        self.last_update_label.setObjectName("lastUpdateLabel")
-        stats_layout.addWidget(self.last_update_label)
-
-        status_layout.addWidget(service_group)
-        status_layout.addWidget(stats_group)
+        # 使用 StatusPanel 组件替代手工创建的状态显示控件
+        self.status_panel = StatusPanel()
+        status_layout.addWidget(self.status_panel)
 
         return status_layout
 
     def _create_log_area(self) -> QVBoxLayout:
         """创建日志显示区域"""
+        from core.ui.views.components.log_panel import LogPanel
+
         log_layout = QVBoxLayout()
 
-        log_group = QGroupBox("运行日志")
-        log_group_layout = QVBoxLayout(log_group)
-
-        self.log_text = QTextEdit()
-        self.log_text.setReadOnly(True)
-        self.log_text.setMaximumHeight(200)
-        self.log_text.setObjectName("logText")
-        log_group_layout.addWidget(self.log_text)
-
-        self.clear_log_btn = QPushButton("清除日志")
-        self.clear_log_btn.setObjectName("clearLogBtn")
-        log_group_layout.addWidget(self.clear_log_btn)
-
-        log_layout.addWidget(log_group)
+        # 使用 LogPanel 组件替代手工创建的日志显示控件
+        self.log_panel = LogPanel()
+        log_layout.addWidget(self.log_panel)
 
         return log_layout
 

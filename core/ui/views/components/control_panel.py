@@ -1,7 +1,7 @@
 # ui/views/components/control_panel.py
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QCheckBox,
-    QPushButton, QLineEdit, QLabel
+    QPushButton, QLineEdit, QLabel, QTableWidget, QHeaderView
 )
 
 class ControlPanel(QWidget):
@@ -34,13 +34,31 @@ class ControlPanel(QWidget):
         self.collect_checkbox.setObjectName("collectCheckbox")
         layout.addWidget(self.collect_checkbox)
 
-        domain_layout = QHBoxLayout()
-        domain_layout.addWidget(QLabel("目标域名:"))
+        # 域名输入区域
+        domain_input_layout = QHBoxLayout()
+        domain_input_layout.addWidget(QLabel("目标域名:"))
         self.domain_input = QLineEdit()
-        self.domain_input.setPlaceholderText("输入目标域名，多个用逗号分隔")
+        self.domain_input.setPlaceholderText("输入目标域名")
         self.domain_input.setObjectName("domainInput")
-        domain_layout.addWidget(self.domain_input)
-        layout.addLayout(domain_layout)
+        domain_input_layout.addWidget(self.domain_input)
+
+        self.add_domain_btn = QPushButton("添加")
+        self.add_domain_btn.setObjectName("addDomainBtn")
+        domain_input_layout.addWidget(self.add_domain_btn)
+        layout.addLayout(domain_input_layout)
+
+        # 域名列表表格
+        self.domain_table = QTableWidget(0, 1)
+        self.domain_table.setHorizontalHeaderLabels(["域名列表"])
+        self.domain_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
+        self.domain_table.verticalHeader().setVisible(False)
+        self.domain_table.setObjectName("domainTable")
+        # 设置表格最小高度以确保可见
+        self.domain_table.setMinimumHeight(150)
+        layout.addWidget(self.domain_table)
+
+        # 连接按钮点击事件（如果需要）
+        # self.add_domain_btn.clicked.connect(self.add_domain_to_table)
 
         return group
 

@@ -3,6 +3,8 @@ from PyQt5.QtCore import QObject, pyqtSignal
 from typing import List
 import logging
 
+from PyQt5.QtWidgets import QTableWidgetItem
+
 from core.ui.views.main_window import MitmProxyMainView
 from core.ui.controllers.proxy_controller import ProxyController
 from core.ui.controllers.data_collector import DataCollector
@@ -37,10 +39,16 @@ class MainController(QObject):
     def setup_connections(self):
         """设置信号槽连接"""
         # UI事件连接
-        self.view.collect_checkbox.stateChanged.connect(self.on_collect_toggle)
-        self.view.mitm_service_btn.clicked.connect(self.on_mitm_service_toggle)
-        self.view.proxy_btn.clicked.connect(self.on_proxy_toggle)
-        self.view.clear_log_btn.clicked.connect(self.on_clear_logs)
+        # 数据收集控制连接
+        self.view.control_panel.collect_checkbox.stateChanged.connect(self.on_collect_toggle)
+        self.view.control_panel.add_domain_btn.clicked.connect(self.on_add_domain)
+
+        # 服务控制连接
+        self.view.control_panel.mitm_service_btn.clicked.connect(self.on_mitm_service_toggle)
+        self.view.control_panel.proxy_btn.clicked.connect(self.on_proxy_toggle)
+
+        # 日志控制连接
+        self.view.log_panel.clear_log_btn.clicked.connect(self.on_clear_logs)
 
         # 业务逻辑信号连接
         self.data_collected.connect(self.on_data_collected)
@@ -50,13 +58,33 @@ class MainController(QObject):
         """初始化服务"""
         # 初始化数据库连接
         if self.db_manager.connect():
-            self.view.db_status_label.setText("数据库: 已连接")
-            self.view.db_status_label.setStyleSheet("color: green; font-weight: bold;")
+            self.view.status_panel.update_db_status(True)
         else:
-            self.view.db_status_label.setText("数据库: 连接失败")
-            self.view.db_status_label.setStyleSheet("color: red; font-weight: bold;")
+            self.view.status_panel.update_db_status(False)
 
         self.view.log_message("控制器初始化完成")
+
+    def on_add_domain(self):
+        """添加域名到列表"""
+        # 获取输入的域名
+        domain = self.view.control_panel.domain_input.text().strip()
+
+        if domain:
+            # 添加到表格显示
+            table = self.view.control_panel.domain_table
+            row_count = table.rowCount()
+            table.insertRow(row_count)
+            table.setItem(row_count, 0, QTableWidgetItem(domain))
+
+            # 清空输入框
+            self.view.control_panel.domain_input.clear()
+
+            # TODO: 保存到MongoDB数据库
+            # self.save_domain_to_mongodb(domain)
+
+            self.view.log_message(f"已添加域名: {domain}")
+        else:
+            self.view.log_message("请输入有效的域名")
 
     def on_collect_toggle(self, state):
         """数据收集开关切换"""
@@ -81,9 +109,9 @@ class MainController(QObject):
             success = self.proxy_controller.start_mitmproxy(self.view.log_message)
             if success:
                 self.is_mitm_running = True
-                self.view.mitm_service_btn.setText("停止 MitmProxy 服务")
-                self.view.mitm_status_label.setText("MitmProxy: 运行中")
-                self.view.mitm_status_label.setStyleSheet("color: green; font-weight: bold;")
+                self.view.control_panel.mitm_service_btn.setText("停止 MitmProxy 服务")
+                self.view.status_panel.mitm_status_label.setText("MitmProxy: 运行中")
+                self.view.status_panel.mitm_status_label.setStyleSheet("color: green; font-weight: bold;")
                 self.view.log_message("MitmProxy 服务启动成功")
             else:
                 self.view.log_message("MitmProxy 服务启动失败")
@@ -92,9 +120,9 @@ class MainController(QObject):
             # 停止服务
             self.proxy_controller.stop_mitmproxy()
             self.is_mitm_running = False
-            self.view.mitm_service_btn.setText("启动 MitmProxy 服务")
-            self.view.mitm_status_label.setText("MitmProxy: 未运行")
-            self.view.mitm_status_label.setStyleSheet("color: red; font-weight: bold;")
+            self.view.control_panel.mitm_service_btn.setText("启动 MitmProxy 服务")
+            self.view.status_panel.mitm_status_label.setText("MitmProxy: 未运行")
+            self.view.status_panel.mitm_status_label.setStyleSheet("color: red; font-weight: bold;")
             self.view.log_message("MitmProxy 服务已停止")
 
     def on_proxy_toggle(self):
@@ -104,9 +132,9 @@ class MainController(QObject):
             success = self.proxy_controller.enable_global_proxy()
             if success:
                 self.is_proxy_enabled = True
-                self.view.proxy_btn.setText("禁用全局代理")
-                self.view.proxy_status_label.setText("全局代理: 已启用")
-                self.view.proxy_status_label.setStyleSheet("color: green; font-weight: bold;")
+                self.view.control_panel.proxy_btn.setText("禁用全局代理")
+                self.view.status_panel.proxy_status_label.setText("全局代理: 已启用")
+                self.view.status_panel.proxy_status_label.setStyleSheet("color: green; font-weight: bold;")
                 self.view.log_message("全局代理已启用")
             else:
                 self.view.log_message("全局代理启用失败")
@@ -115,9 +143,9 @@ class MainController(QObject):
             # 禁用代理
             self.proxy_controller.disable_global_proxy()
             self.is_proxy_enabled = False
-            self.view.proxy_btn.setText("启用全局代理")
-            self.view.proxy_status_label.setText("全局代理: 未启用")
-            self.view.proxy_status_label.setStyleSheet("color: red; font-weight: bold;")
+            self.view.control_panel.proxy_btn.setText("启用全局代理")
+            self.view.status_panel.proxy_status_label.setText("全局代理: 未启用")
+            self.view.status_panel.proxy_status_label.setStyleSheet("color: red; font-weight: bold;")
             self.view.log_message("全局代理已禁用")
 
     def on_clear_logs(self):

@@ -57,3 +57,36 @@ class StatusPanel(QWidget):
         layout.addWidget(self.last_update_label)
 
         return group
+
+    def update_mitm_status(self, running: bool):
+        """更新MitmProxy状态显示"""
+        status_text = "运行中" if running else "未运行"
+        self.mitm_status_label.setText(f"MitmProxy: {status_text}")
+
+        # 设置样式
+        if running:
+            self.mitm_status_label.setStyleSheet("color: green; font-weight: bold;")
+        else:
+            self.mitm_status_label.setStyleSheet("color: red; font-weight: bold;")
+
+    def update_proxy_status(self, enabled: bool):
+        """更新代理状态显示"""
+        status_text = "已启用" if enabled else "未启用"
+        self.proxy_status_label.setText(f"全局代理: {status_text}")
+
+        # 设置样式
+        if enabled:
+            self.proxy_status_label.setStyleSheet("color: green; font-weight: bold;")
+        else:
+            self.proxy_status_label.setStyleSheet("color: red; font-weight: bold;")
+
+    def update_db_status(self, connected: bool):
+        """更新数据库状态显示"""
+        status_text = "已连接" if connected else "未连接"
+        self.db_status_label.setText(f"数据库: {status_text}")
+
+        # 设置样式
+        if connected:
+            self.db_status_label.setStyleSheet("color: green; font-weight: bold;")
+        else:
+            self.db_status_label.setStyleSheet("color: red; font-weight: bold;")
