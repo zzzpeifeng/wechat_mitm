@@ -1,5 +1,5 @@
 # ui/controllers/main_controller.py
-from PyQt5.QtCore import QObject, pyqtSignal
+from PyQt5.QtCore import QObject, pyqtSignal,Qt
 from typing import List
 import logging
 
@@ -40,7 +40,7 @@ class MainController(QObject):
         """设置信号槽连接"""
         # UI事件连接
         # 数据收集控制连接
-        self.view.control_panel.collect_checkbox.stateChanged.connect(self.on_collect_toggle)
+        # self.view.control_panel.collect_checkbox.stateChanged.connect(self.on_collect_toggle)
         self.view.control_panel.add_domain_btn.clicked.connect(self.on_add_domain)
 
         # 服务控制连接
@@ -54,15 +54,60 @@ class MainController(QObject):
         self.data_collected.connect(self.on_data_collected)
         self.status_updated.connect(self.on_status_updated)
 
+        # 添加域名按钮连接
+        self.view.control_panel.add_domain_btn.clicked.connect(self.on_add_domain)
+
     def initialize_services(self):
         """初始化服务"""
         # 初始化数据库连接
         if self.db_manager.connect():
             self.view.status_panel.update_db_status(True)
+            # 初始化时加载数据库中的域名数据
+            self.load_domains_from_mongodb()
         else:
             self.view.status_panel.update_db_status(False)
 
         self.view.log_message("控制器初始化完成")
+
+    def load_domains_from_mongodb(self) -> bool:
+        """
+        从MongoDB数据库加载域名数据到表格
+
+        Returns:
+            bool: 加载是否成功
+        """
+        try:
+            # 检查数据库连接状态 - 修复数据库对象布尔值判断问题
+            if not self.db_manager.connected or self.db_manager.db is None:
+                self.view.log_message("数据库未连接，无法加载域名")
+                return False
+
+            # 获取target_domains集合
+            collection = self.db_manager.db["target_domains"]
+
+            # 查询所有域名
+            domains = list(collection.find({}, {"domain": 1}))
+
+            # 清空现有表格内容
+            table = self.view.control_panel.domain_table
+            table.setRowCount(0)
+
+            # 填充表格数据
+            for domain_doc in domains:
+                row_count = table.rowCount()
+                table.insertRow(row_count)
+                item = QTableWidgetItem(domain_doc["domain"])
+                # 设置为不可编辑
+                item.setFlags(item.flags() & ~Qt.ItemIsEditable)
+                table.setItem(row_count, 0, item)
+
+            self.view.log_message(f"从数据库加载了 {len(domains)} 个域名")
+            return True
+
+        except Exception as e:
+            logging.error(f"从MongoDB加载域名失败: {e}")
+            self.view.log_message(f"加载域名失败: {str(e)}")
+            return False
 
     def on_add_domain(self):
         """添加域名到列表"""
@@ -80,19 +125,54 @@ class MainController(QObject):
             self.view.control_panel.domain_input.clear()
 
             # TODO: 保存到MongoDB数据库
-            # self.save_domain_to_mongodb(domain)
+            self.save_domain_to_mongodb(domain)
 
             self.view.log_message(f"已添加域名: {domain}")
         else:
             self.view.log_message("请输入有效的域名")
 
-    def on_collect_toggle(self, state):
-        """数据收集开关切换"""
-        is_checked = state == 2  # Qt.Checked
-        self.is_collecting = is_checked
+    def save_domain_to_mongodb(self, domain: str) -> bool:
+        """
+        保存域名到MongoDB数据库
+
+        Args:
+            domain (str): 要保存的域名
+
+        Returns:
+            bool: 保存是否成功
+        """
+        try:
+            # 检查数据库连接状态 - 修复数据库对象布尔值判断问题
+            if not self.db_manager.connected or self.db_manager.db is None:
+                self.view.log_message("数据库未连接，无法保存域名")
+                return False
+
+            # 获取或创建target_domains集合
+            collection = self.db_manager.db["target_domains"]
+
+            # 检查域名是否已存在
+            existing_domain = collection.find_one({"domain": domain})
+            if existing_domain:
+                # 域名已存在，无需重复保存
+                return True
+
+            # 插入新域名
+            from datetime import datetime
+            result = collection.insert_one({
+                "domain": domain,
+                "created_at": datetime.now()
+            })
+
+            return result.acknowledged
+
+        except Exception as e:
+            logging.error(f"保存域名到MongoDB失败: {e}")
+            self.view.log_message(f"保存域名失败: {str(e)}")
+            return False
+
 
         # 获取目标域名
-        domain_text = self.view.domain_input.text()
+        domain_text = self.view.control_panel.domain_input.text()
         target_domains = [d.strip() for d in domain_text.split(',') if d.strip()]
 
         # 配置数据收集器
@@ -150,7 +230,7 @@ class MainController(QObject):
 
     def on_clear_logs(self):
         """清除日志"""
-        self.view.log_text.clear()
+        self.view.log_panel.log_text.clear()
 
     def on_data_collected(self, count: int):
         """数据收集回调"""

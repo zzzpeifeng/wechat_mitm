@@ -30,9 +30,9 @@ class ControlPanel(QWidget):
         group = QGroupBox("数据收集控制")
         layout = QVBoxLayout(group)
 
-        self.collect_checkbox = QCheckBox("启用数据收集")
-        self.collect_checkbox.setObjectName("collectCheckbox")
-        layout.addWidget(self.collect_checkbox)
+        # self.collect_checkbox = QCheckBox("启用数据收集")
+        # self.collect_checkbox.setObjectName("collectCheckbox")
+        # layout.addWidget(self.collect_checkbox)
 
         # 域名输入区域
         domain_input_layout = QHBoxLayout()

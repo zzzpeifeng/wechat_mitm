@@ -29,6 +29,39 @@ class ChainCookieInterceptor:
         self.is_collecting = True  # 是否正在收集数据
         print('ChainCookieInterceptor 完成')
 
+    def load_target_domains_from_db(self):
+        """
+        从 MongoDB 数据库加载目标域名列表
+        """
+        try:
+            # 确保数据库连接
+            if not self.db_manager.connected:
+                success = self.db_manager.connect()
+                if not success:
+                    logger.warning("无法连接到数据库，使用默认域名列表")
+                    return
+
+            # 获取 target_domains 集合
+            if self.db_manager.db is not None:
+                collection = self.db_manager.db["target_domains"]
+
+                # 确保 collection 不为 None
+                if collection is not None:
+                    # 查询所有域名
+                    domains = list(collection.find({}, {"domain": 1}))
+
+                    # 提取域名列表
+                    self.target_domains = [doc["domain"] for doc in domains if "domain" in doc]
+                    logger.info(f"从数据库加载了 {len(self.target_domains)} 个目标域名: {self.target_domains}")
+                else:
+                    logger.warning("无法获取目标域名集合")
+            else:
+                logger.warning("数据库未初始化，无法加载目标域名")
+
+        except Exception as e:
+            logger.error(f"从数据库加载目标域名失败: {e}")
+            # 出错时使用空列表或默认域名
+
     def set_target_domains(self, domains: list):
         """
         设置目标域名列表
@@ -49,44 +82,49 @@ class ChainCookieInterceptor:
         self.is_collecting = enabled
         logger.info(f"数据收集 {'启用' if enabled else '禁用'}")
 
-    def is_target_domain(self, host: str) -> bool:
+    def is_target_domain(self, url: str) -> bool:
         """
-        判断是否为目标域名
+        判断是否为目标域名（通过检查整个URL）
 
         Args:
-            host (str): 请求主机名
+            url (str): 请求完整URL
 
         Returns:
             bool: 是否为目标域名
         """
+        # 如果目标域名列表为空，从数据库重新加载
         if not self.target_domains:
-            logger.info("未设置目标域名")
-            return True  # 如果没有设置目标域名，则匹配所有
-        logger.info(f"检查域名: {host}")
-        for domain in self.target_domains:
-            if domain in host or host.endswith(domain):
-                logger.info(f"匹配到目标域名: {domain}")
-                return True
+            self.load_target_domains_from_db()
+
+        # 如果仍然没有目标域名，则匹配所有（向后兼容）
+        if not self.target_domains:
+            logger.info("未设置目标域名，匹配所有请求")
+            return True
+
+        try:
+            # 解析URL
+            parsed_url = urlparse(url)
+            host = parsed_url.netloc.lower()
+
+            logger.info(f"检查URL: {url}")
+            logger.info(f"解析出的域名: {host}")
+
+            # 检查域名是否匹配目标域名列表
+            for domain in self.target_domains:
+                if domain in url or host in domain:
+                    logger.info(f"匹配到目标域名: {domain}")
+                    return True
+
+                # 同时检查URL路径中是否包含目标域名
+                if domain in parsed_url.path:
+                    logger.info(f"URL路径匹配到目标域名: {domain}")
+                    return True
+
+        except Exception as e:
+            logger.error(f"URL解析错误: {e}")
+            return False
+
         return False
-
-    def extract_chain_from_cookie(self, cookie_str: str) -> Optional[str]:
-        """
-        从 Cookie 字符串中提取 chain 值
-
-        Args:
-            cookie_str (str): Cookie 字符串
-
-        Returns:
-            Optional[str]: 提取到的 chain 值，未找到则返回 None
-        """
-        if not cookie_str:
-            return None
-
-        # 使用正则表达式匹配 chain 值
-        chain_match = re.search(r'chain=([^;]*)', cookie_str)
-        if chain_match:
-            return chain_match.group(1).strip()
-        return None
 
     # @concurrent
     def request(self, flow: http.HTTPFlow) -> None:
@@ -105,12 +143,11 @@ class ChainCookieInterceptor:
 
         # 获取请求信息
         request = flow.request
-        host = request.host.lower()
 
         # 检查是否为目标域名
         logger.info(f"处理请求: {request.method} {request.path}")
 
-        if not self.is_target_domain(host):
+        if not self.is_target_domain(request.url):
             return
 
         # 获取 Cookie
@@ -118,28 +155,35 @@ class ChainCookieInterceptor:
         if not cookie_header:
             return
 
-        # 提取 chain 值
-        chain_value = self.extract_chain_from_cookie(cookie_header)
-        if not chain_value:
-            return
-
         # 记录日志
-        logger.info(f"捕获到目标请求 - 域名: {host}, Chain值: {chain_value}")
+        logger.info(f"捕获到目标请求 - 域名: {request.url}, cookie值: {cookie_header}")
 
         # 保存到数据库
-        self.save_chain_data(host, chain_value, cookie_header, request.timestamp_start)
+        self.save_chain_data(request.host, request.url, cookie_header, request.timestamp_start)
 
-    def save_chain_data(self, domain: str, chain_value: str, cookie: str, timestamp: float):
+    def save_chain_data(self, host: str, domain: str, cookie_header: str, timestamp: float):
         """
         保存 chain 数据到数据库
 
         Args:
+            host (str): host
             domain (str): 请求域名
-            chain_value (str): chain 值
-            cookie (str): 完整的 Cookie
+            cookie_header (str): 完整的 Cookie
             timestamp (float): 时间戳
         """
         try:
+            # 检查 cookie 中是否包含必需的字段
+            required_fields = ['chain-id', 'chain', 'HMACCOUNT']
+            missing_fields = []
+
+            for field in required_fields:
+                if field not in cookie_header:
+                    missing_fields.append(field)
+
+            if missing_fields:
+                logger.warning(f"Cookie 缺少必需字段: {missing_fields}，跳过保存")
+                return
+
             # 确保数据库连接
             if not self.db_manager.connected:
                 success = self.db_manager.connect()
@@ -147,14 +191,16 @@ class ChainCookieInterceptor:
                     logger.error("无法连接到数据库")
                     return
 
+            # 集合总是存在的（MongoDB会在第一次插入时自动创建）
+            # 直接进行数据保存操作
             # 转换时间戳
             dt_timestamp = datetime.fromtimestamp(timestamp)
 
             # 插入数据
             success = self.db_manager.insert_chain_data(
+                host=host,
                 domain=domain,
-                chain_value=chain_value,
-                cookie=cookie,
+                cookie_header=cookie_header,
                 timestamp=dt_timestamp
             )
 

@@ -78,7 +78,7 @@ class MongoDBManager:
             self.connected = False
             logging.info("已断开 MongoDB 连接")
 
-    def insert_chain_data(self, domain: str, chain_value: str, cookie: str, timestamp: datetime = None) -> bool:
+    def insert_chain_data(self,host:str, domain: str, cookie_header: str, timestamp: datetime = None) -> bool:
         """
         插入 chain 数据到数据库
 
@@ -91,23 +91,35 @@ class MongoDBManager:
         Returns:
             bool: 插入是否成功
         """
-        if not self.connected or not self.collection:
+        logging.info(f"成功进入insert_chain_data")
+        if not self.connected or self.collection is None:
             logging.error("数据库未连接，无法插入数据")
             return False
-
         try:
             # 准备数据文档
             document = {
+                'host': host,
                 "domain": domain,
-                "chain_value": chain_value,
-                "cookie": cookie,
+                "cookie_header": cookie_header,
                 "timestamp": timestamp or datetime.now(),
                 "created_at": datetime.now()
             }
 
             # 插入数据
-            result = self.collection.insert_one(document)
-            logging.info(f"成功插入数据，ID: {result.inserted_id}")
+            logging.info(f"准备插入数据")
+            # 使用 upsert 操作：如果存在相同 domain 的数据则更新，否则插入
+            result = self.collection.update_one(
+                {"host": host},  # 查询条件
+                {"$set": document},  # 更新数据
+                upsert=True  # 如果不存在则插入
+            )
+            if result.upserted_id:
+                logging.info(f"成功插入新数据，ID: {result.upserted_id}")
+            elif result.modified_count > 0:
+                logging.info(f"成功更新域名为 {domain} 的数据")
+            else:
+                logging.info(f"数据无变化，域名为 {domain} 的数据已存在且未被修改")
+
             return True
 
         except Exception as e:
