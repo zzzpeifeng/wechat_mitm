@@ -97,6 +97,7 @@ class ProxyController:
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
+                encoding='utf-8',  # 显式指定编码
                 bufsize=1,  # 行缓冲
                 universal_newlines=True
             )
