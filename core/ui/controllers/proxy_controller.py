@@ -208,7 +208,7 @@ class ProxyController:
 
             with winreg.OpenKey(winreg.HKEY_CURRENT_USER, key_path, 0, winreg.KEY_WRITE) as key:
                 winreg.SetValueEx(key, "ProxyEnable", 0, winreg.REG_DWORD, 1)
-                winreg.SetValueEx(key, "ProxyServer", 0, winreg.REG_SZ, "127.0.0.1:8080")
+                winreg.SetValueEx(key, "ProxyServer", 0, winreg.REG_SZ, "127.0.0.1:8081")
 
             # 刷新系统设置
             import ctypes
@@ -300,7 +300,7 @@ class ProxyController:
             ], check=True, capture_output=True)
 
             subprocess.run([
-                "gsettings", "set", "org.gnome.system.proxy.http", "port", "8080"
+                "gsettings", "set", "org.gnome.system.proxy.http", "port", "8081"
             ], check=True, capture_output=True)
 
             # 设置HTTPS代理
@@ -309,7 +309,7 @@ class ProxyController:
             ], check=True, capture_output=True)
 
             subprocess.run([
-                "gsettings", "set", "org.gnome.system.proxy.https", "port", "8080"
+                "gsettings", "set", "org.gnome.system.proxy.https", "port", "8081"
             ], check=True, capture_output=True)
 
             # 启用代理
