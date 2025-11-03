@@ -3,11 +3,10 @@ import shutil
 import subprocess
 import platform
 import os
-import signal
-import logging
 import sys
 from typing import Optional
 import logging
+
 
 class ProxyController:
     """
@@ -32,6 +31,18 @@ class ProxyController:
         if getattr(sys, 'frozen', False):
             # 获取可执行文件所在目录
             bundle_dir = os.path.dirname(sys.executable)
+
+            # 根据不同操作系统构造mitmdump路径
+            if platform.system() == "Windows":
+                mitmdump_exe = os.path.join(bundle_dir, 'mitmdump.exe')
+            else:  # macOS/Linux
+                mitmdump_exe = os.path.join(bundle_dir, 'mitmdump')
+
+            if os.path.exists(mitmdump_exe):
+                return mitmdump_exe
+        elif getattr(sys, '_MEIPASS', False):  # PyInstaller运行时资源目录
+            # 获取PyInstaller资源目录
+            bundle_dir = sys._MEIPASS
 
             # 根据不同操作系统构造mitmdump路径
             if platform.system() == "Windows":
