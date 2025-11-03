@@ -76,7 +76,6 @@ class ProxyController:
             except FileNotFoundError as e:
                 self.logger.error(str(e))
                 return False
-            logger.info(f"使用mitmdump路径: {mitmdump_path}")
             # 构建mitmproxy命令
             handler_path = os.path.join(os.path.dirname(__file__), "..", "..", 'scripts', "mitmproxy_handler.py")
             handler_path = os.path.abspath(handler_path)
