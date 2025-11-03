@@ -40,6 +40,7 @@ class MongoDBManager:
             mongodb_username = quote_plus(DatabaseConfig.MONGODB_USERNAME)
             mongodb_password = quote_plus(DatabaseConfig.MONGODB_PASSWORD)
 
+            logging.info(mongodb_password)
             # 构建连接字符串
             if mongodb_username and mongodb_password:
                 connection_string = f"mongodb://{mongodb_username}:{mongodb_password}@{mongodb_host}:{mongodb_port}/"
