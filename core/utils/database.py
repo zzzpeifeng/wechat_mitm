@@ -8,6 +8,7 @@ from datetime import datetime
 from config.settings import DatabaseConfig  # 导入配置类
 from urllib.parse import quote_plus
 
+
 class MongoDBManager:
     """
     MongoDB 数据库管理类
@@ -79,7 +80,8 @@ class MongoDBManager:
             self.connected = False
             logging.info("已断开 MongoDB 连接")
 
-    def insert_chain_data(self,host:str, domain: str, cookie_header: str, timestamp: datetime = None) -> bool:
+    def insert_chain_data(self, host: str, domain: str, chain_id: str, cookie_header: str,
+                          timestamp: datetime = None) -> bool:
         """
         插入 chain 数据到数据库
 
@@ -101,6 +103,7 @@ class MongoDBManager:
             document = {
                 'host': host,
                 "domain": domain,
+                'chain_id': chain_id,
                 "cookie_header": cookie_header,
                 "timestamp": timestamp or datetime.now(),
                 "created_at": datetime.now()
@@ -110,7 +113,7 @@ class MongoDBManager:
             logging.info(f"准备插入数据")
             # 使用 upsert 操作：如果存在相同 domain 的数据则更新，否则插入
             result = self.collection.update_one(
-                {"host": host},  # 查询条件
+                {"host": host, "chain_id": chain_id},  # 查询条件
                 {"$set": document},  # 更新数据
                 upsert=True  # 如果不存在则插入
             )

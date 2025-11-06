@@ -176,12 +176,25 @@ class ChainCookieInterceptor:
             required_fields = ['chain-id', 'chain', 'HMACCOUNT']
             missing_fields = []
 
+
+
             for field in required_fields:
                 if field not in cookie_header:
                     missing_fields.append(field)
 
             if missing_fields:
                 logger.warning(f"Cookie 缺少必需字段: {missing_fields}，跳过保存")
+                return
+
+            # 从 cookie_header 中提取 chain-id
+            chain_id = None
+            # 使用正则表达式提取 chain-id 的值
+            chain_id_match = re.search(r'chain-id=([^;,\s]+)', cookie_header)
+            if chain_id_match:
+                chain_id = chain_id_match.group(1)
+                logger.info(f"提取到 chain-id: {chain_id}")
+            else:
+                logger.warning("未能从 cookie 中提取到 chain-id")
                 return
 
             # 确保数据库连接
@@ -200,6 +213,7 @@ class ChainCookieInterceptor:
             success = self.db_manager.insert_chain_data(
                 host=host,
                 domain=domain,
+                chain_id=chain_id,
                 cookie_header=cookie_header,
                 timestamp=dt_timestamp
             )
