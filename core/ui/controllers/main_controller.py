@@ -7,7 +7,6 @@ from PyQt5.QtWidgets import QTableWidgetItem
 
 from core.ui.views.main_window import MitmProxyMainView
 from core.ui.controllers.proxy_controller import ProxyController
-from core.ui.controllers.data_collector import DataCollector
 from core.utils.database import get_db_manager
 
 
@@ -24,7 +23,7 @@ class MainController(QObject):
         super().__init__()
         self.view = view
         self.proxy_controller = ProxyController()
-        self.data_collector = DataCollector()
+        # self.data_collector = DataCollector()
         self.db_manager = get_db_manager()
 
         # 状态管理

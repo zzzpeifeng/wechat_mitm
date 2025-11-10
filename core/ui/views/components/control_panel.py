@@ -4,6 +4,7 @@ from PyQt5.QtWidgets import (
     QPushButton, QLineEdit, QLabel, QTableWidget, QHeaderView
 )
 
+
 class ControlPanel(QWidget):
     """
     控制面板组件 - 包含数据收集和服务器控制功能
@@ -67,10 +68,15 @@ class ControlPanel(QWidget):
         group = QGroupBox("服务控制")
         layout = QVBoxLayout(group)
 
-        self.mitm_service_btn = QPushButton("启动 MitmProxy 服务")
+        self.mitm_service_btn = QPushButton("启动青鸟监控")
         self.mitm_service_btn.setCheckable(True)
         self.mitm_service_btn.setObjectName("mitmServiceBtn")
         layout.addWidget(self.mitm_service_btn)
+
+        self.crawler_btn = QPushButton("启动青鸟爬虫")
+        self.crawler_btn.setCheckable(True)
+        self.crawler_btn.setObjectName("crawlerBtn")
+        layout.addWidget(self.crawler_btn)
 
         self.proxy_btn = QPushButton("启用全局代理")
         self.proxy_btn.setCheckable(True)
