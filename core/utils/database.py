@@ -37,7 +37,6 @@ class MongoDBManager:
             mongodb_host = DatabaseConfig.MONGODB_HOST
             mongodb_port = DatabaseConfig.MONGODB_PORT
             mongodb_database = DatabaseConfig.MONGODB_DATABASE
-            mongodb_collection = os.getenv('MONGODB_COLLECTION', 'chain_cookies')  # collection仍从环境变量获取
             mongodb_username = quote_plus(DatabaseConfig.MONGODB_USERNAME)
             mongodb_password = quote_plus(DatabaseConfig.MONGODB_PASSWORD)
 
@@ -59,7 +58,7 @@ class MongoDBManager:
 
             # 获取数据库和集合
             self.db = self.client[mongodb_database]
-            self.collection = self.db[mongodb_collection]
+            # self.collection = self.db[mongodb_collection]
 
             self.connected = True
             logging.info(f"成功连接到 MongoDB: {mongodb_host}:{mongodb_port}")
@@ -95,6 +94,7 @@ class MongoDBManager:
             bool: 插入是否成功
         """
         logging.info(f"成功进入insert_chain_data")
+        self.collection = self.db['chain_cookies']
         if not self.connected or self.collection is None:
             logging.error("数据库未连接，无法插入数据")
             return False
@@ -140,9 +140,11 @@ class MongoDBManager:
         Returns:
             bool: 插入是否成功
         """
-        if not self.connected or not self.collection:
+        if not self.connected:
             logging.error("数据库未连接，无法插入数据")
             return False
+
+        self.collection = self.db['chain_cookies']
 
         try:
             # 添加创建时间
@@ -155,6 +157,35 @@ class MongoDBManager:
 
         except Exception as e:
             logging.error(f"插入请求数据失败: {str(e)}")
+            return False
+
+    def insert_online_rate(self, data: Dict[str, Any]) -> bool:
+        """
+        插入在线率数据到数据库
+
+        Args:
+            data (Dict[str, Any]): 在线率数据字典
+
+        Returns:
+            bool: 插入是否成功
+        """
+        if not self.connected:
+            logging.error("数据库未连接，无法插入数据")
+            return False
+
+        self.collection = self.db['online_rate']
+
+        try:
+            # 添加创建时间
+            data["created_at"] = datetime.now()
+
+            # 插入数据
+            result = self.collection.insert_one(data)
+            logging.info(f"成功插入在线率数据，ID: {result.inserted_id}")
+            return True
+
+        except Exception as e:
+            logging.error(f"插入在线率数据失败: {str(e)}")
             return False
 
     def get_connection_status(self) -> Dict[str, Any]:

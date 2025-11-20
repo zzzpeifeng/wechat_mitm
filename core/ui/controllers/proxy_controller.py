@@ -99,6 +99,7 @@ class ProxyController:
                 mitmdump_path,  # 使用查找到的完整路径
                 "-s", handler_path,
                 "--listen-port", "8081",
+                # '-q',  # 安静模式
                 # "--ssl-insecure"  # 忽略SSL证书验证
             ]
 

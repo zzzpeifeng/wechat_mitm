@@ -143,6 +143,7 @@ class QNDataCollector:
             # 组装店铺信息
             data_dict['offline_stores'].append(offline_store_dict)
         print(data_dict)
+        self.db_manager.insert_online_rate(data_dict)
 
 
 if __name__ == '__main__':
