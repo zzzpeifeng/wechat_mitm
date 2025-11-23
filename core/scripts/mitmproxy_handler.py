@@ -176,8 +176,6 @@ class ChainCookieInterceptor:
             required_fields = ['chain-id', 'chain', 'HMACCOUNT']
             missing_fields = []
 
-
-
             for field in required_fields:
                 if field not in cookie_header:
                     missing_fields.append(field)

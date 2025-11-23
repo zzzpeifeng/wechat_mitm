@@ -178,6 +178,8 @@ class MongoDBManager:
         try:
             # 添加创建时间
             data["created_at"] = datetime.now()
+            data['updated_at'] = datetime.now()
+            data['record_time'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
             # 插入数据
             result = self.collection.insert_one(data)

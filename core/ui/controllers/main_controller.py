@@ -5,6 +5,7 @@ import logging
 
 from PyQt5.QtWidgets import QTableWidgetItem
 
+from core.ui.controllers.data_collector import QNDataCollector, DataCollectionWorker
 from core.ui.views.main_window import MitmProxyMainView
 from core.ui.controllers.proxy_controller import ProxyController
 from core.utils.database import get_db_manager
@@ -23,7 +24,8 @@ class MainController(QObject):
         super().__init__()
         self.view = view
         self.proxy_controller = ProxyController()
-        # self.data_collector = DataCollector()
+        self.data_qn_collector = QNDataCollector()
+        self.qn_data_worker = None
         self.db_manager = get_db_manager()
 
         # 状态管理
@@ -45,6 +47,9 @@ class MainController(QObject):
         # 服务控制连接
         self.view.control_panel.mitm_service_btn.clicked.connect(self.on_mitm_service_toggle)
         self.view.control_panel.proxy_btn.clicked.connect(self.on_proxy_toggle)
+
+        # 数据收集开始连接
+        self.view.control_panel.crawler_btn.clicked.connect(self.on_crawler_toggle)
 
         # 日志控制连接
         self.view.log_panel.clear_log_btn.clicked.connect(self.on_clear_logs)
@@ -188,12 +193,12 @@ class MainController(QObject):
             success = self.proxy_controller.start_mitmproxy(self.view.log_message)
             if success:
                 self.is_mitm_running = True
-                self.view.control_panel.mitm_service_btn.setText("停止 MitmProxy 服务")
+                self.view.control_panel.mitm_service_btn.setText("停止青鸟监控")
                 self.view.status_panel.mitm_status_label.setText("MitmProxy: 运行中")
                 self.view.status_panel.mitm_status_label.setStyleSheet("color: green; font-weight: bold;")
-                self.view.log_message("MitmProxy 服务启动成功")
+                self.view.log_message("青鸟平台服务启动成功")
             else:
-                self.view.log_message("MitmProxy 服务启动失败")
+                self.view.log_message("青鸟平台服务启动失败")
                 self.view.mitm_service_btn.setChecked(False)
         else:
             # 停止服务
@@ -226,6 +231,44 @@ class MainController(QObject):
             self.view.status_panel.proxy_status_label.setText("全局代理: 未启用")
             self.view.status_panel.proxy_status_label.setStyleSheet("color: red; font-weight: bold;")
             self.view.log_message("全局代理已禁用")
+
+
+    def on_crawler_toggle(self):
+        """爬虫开关切换"""
+        # 先关闭全局代理、修改按钮状态
+        self.proxy_controller.disable_global_proxy()
+        self.is_proxy_enabled = False
+        self.view.control_panel.proxy_btn.setText("启用全局代理")
+        self.view.status_panel.proxy_status_label.setText("全局代理: 未启用")
+        self.view.status_panel.proxy_status_label.setStyleSheet("color: red; font-weight: bold;")
+        self.view.log_message("由于开始爬虫，全局代理已禁用")
+
+        # 爬虫开始
+        # 创建并启动工作线程
+        self.data_collection_worker = DataCollectionWorker(self.data_qn_collector)
+        self.data_collection_worker.finished.connect(self.on_data_collection_finished)
+        self.data_collection_worker.progress.connect(self.view.log_message)
+        self.data_collection_worker.log_message.connect(self.view.log_message)  # 连接日志信号
+        self.data_collection_worker.start()
+
+        # 禁用爬虫按钮防止重复点击
+        self.view.control_panel.crawler_btn.setEnabled(False)
+        self.view.control_panel.crawler_btn.setText("数据收集中...")
+
+
+    def on_data_collection_finished(self):
+        """数据收集完成回调"""
+        self.view.control_panel.crawler_btn.setEnabled(True)
+        self.view.control_panel.crawler_btn.setText("开始爬虫")
+        self.view.log_message("数据收集任务已完成")
+
+        # 清理工作线程
+        if self.qn_data_worker:
+            self.qn_data_worker.deleteLater()
+            self.qn_data_worker = None
+
+
+
 
     def on_clear_logs(self):
         """清除日志"""

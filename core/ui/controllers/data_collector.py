@@ -1,12 +1,10 @@
 # core/data_collector.py
 import time
-from typing import List, Optional
-import re
 import logging
 from dotenv import load_dotenv
 import requests
-
 from core.utils.tools.tools import dict_to_cookie_string, parse_cookie_header
+from PyQt5.QtCore import QThread, pyqtSignal
 
 load_dotenv()
 from core.utils.database import get_db_manager
@@ -26,6 +24,14 @@ class QNDataCollector:
         self.db_manager = get_db_manager()
         self.cookie_header = None
         self.session = requests.Session()
+        self.log_callback = None  # 添加日志回调属性
+
+    def log(self, message):
+        """日志输出方法"""
+        if self.log_callback:
+            self.log_callback(message)  # 通过回调函数发送日志
+        else:
+            print(message)  # 默认打印到控制台
 
     def load_cookie(self):
         # 确保数据库连接
@@ -41,6 +47,8 @@ class QNDataCollector:
             cookie_document = cookie_collection.find_one({"host": self.host})
             if cookie_document:
                 self.cookie_header = parse_cookie_header(cookie_document["cookie_header"])
+                for key, value in self.cookie_header.items():
+                    self.session.cookies.set(key, value)
                 logger.info(f"成功加载域名 {self.host} 的 cookie:{self.cookie_header}")
             else:
                 logger.warning(f"域名 {self.host} 的 cookie 不存在")
@@ -75,7 +83,7 @@ class QNDataCollector:
             "chain_id": self.cookie_header.get('chain-id'),
             "dingzuo": "1"
         }
-        response = self.session.get(url, headers=headers, params=params, verify=False)
+        response = self.session.get(url, params=params, verify=False)
         logger.info(f"获取线下门店列表:{response.text}")
         return response.json()
 
@@ -90,7 +98,7 @@ class QNDataCollector:
             "mch_id": offline_store_id
         }
 
-        response = requests.get(url, params=params)
+        response = self.session.get(url, params=params, verify=False)
         return response.json()
 
     def get_offline_store_data(self):
@@ -99,7 +107,7 @@ class QNDataCollector:
         :return:
         '''
         url = f"https://{self.host}/dingzuo/item"
-        response = requests.get(url)
+        response = self.session.get(url, verify=False)
         return response.json()
 
     def get_all_data(self):
@@ -108,6 +116,7 @@ class QNDataCollector:
         :return:
         '''
         # 获取一个连锁网吧的门店信息
+        self.load_cookie()
         data_dict = {
             'store_id': self.cookie_header.get('chain-id'),
             'store_name': self.host,
@@ -115,18 +124,21 @@ class QNDataCollector:
         }
         offline_store_list = self.get_offline_store_list()
         if offline_store_list['code'] != 0:
-            print(f'获取门店列表信息失败:{self.cookie_header.get('chain-id')}')
-            print(self.cookie_header)
+            # print(f'获取门店列表信息失败:{self.cookie_header.get('chain-id')}')
+            self.log(f'获取门店列表信息失败:{self.cookie_header.get("chain-id")}')
+            self.log(self.cookie_header)
             return
+
         for store in offline_store_list['data']:
             offline_store_id = store.get('id')
             self.select_offline_store(offline_store_id)  # 选择门店
             # 获取门店订座信息
             area_list = []
             temp_book_seat_info = self.get_offline_store_data()
+            print(temp_book_seat_info)
             while temp_book_seat_info.get('code') != 0:
-                print(f"{store.get('name')}获取门店订座信息失败，正在重试...:{temp_book_seat_info.get('msg')}，等待50s")
-                time.sleep(50)
+                self.log(f"{store.get('name')}获取门店订座信息失败，正在重试...:{temp_book_seat_info.get('msg')}，等待50s")
+                time.sleep(30)
                 temp_book_seat_info = self.get_offline_store_data()
             for direct_item in temp_book_seat_info.get('data'):
                 # 组装区域信息
@@ -142,11 +154,34 @@ class QNDataCollector:
             }
             # 组装店铺信息
             data_dict['offline_stores'].append(offline_store_dict)
+            self.log(f"{store.get('name')}获取门店订座信息成功")
         print(data_dict)
         self.db_manager.insert_online_rate(data_dict)
 
 
+
+class DataCollectionWorker(QThread):
+    finished = pyqtSignal()
+    progress = pyqtSignal(str)
+    log_message = pyqtSignal(str)  # 添加日志信号
+
+
+    def __init__(self, qn_data_obj):
+        super().__init__()
+        self.data_collector = qn_data_obj
+
+    def run(self):
+        try:
+            # 设置数据收集器的日志回调函数
+            self.data_collector.log_callback = lambda msg: self.log_message.emit(msg)
+            self.data_collector.get_all_data()
+            self.progress.emit("数据采集完成")
+        except Exception as e:
+            self.progress.emit(f"数据采集失败:{e}")
+        finally:
+            self.finished.emit()
+
 if __name__ == '__main__':
     collector = QNDataCollector()
     collector.db_manager.connect()
-    collector.get_offline_store_list()
+    collector.get_all_data()
