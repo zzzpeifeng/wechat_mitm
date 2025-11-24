@@ -194,7 +194,7 @@ class MainController(QObject):
             if success:
                 self.is_mitm_running = True
                 self.view.control_panel.mitm_service_btn.setText("停止青鸟监控")
-                self.view.status_panel.mitm_status_label.setText("MitmProxy: 运行中")
+                self.view.status_panel.mitm_status_label.setText("青鸟监控: 运行中")
                 self.view.status_panel.mitm_status_label.setStyleSheet("color: green; font-weight: bold;")
                 self.view.log_message("青鸟平台服务启动成功")
             else:
@@ -204,10 +204,10 @@ class MainController(QObject):
             # 停止服务
             self.proxy_controller.stop_mitmproxy()
             self.is_mitm_running = False
-            self.view.control_panel.mitm_service_btn.setText("启动 MitmProxy 服务")
-            self.view.status_panel.mitm_status_label.setText("MitmProxy: 未运行")
+            self.view.control_panel.mitm_service_btn.setText("启动青鸟监控")
+            self.view.status_panel.mitm_status_label.setText("青鸟监控: 未运行")
             self.view.status_panel.mitm_status_label.setStyleSheet("color: red; font-weight: bold;")
-            self.view.log_message("MitmProxy 服务已停止")
+            self.view.log_message("青鸟监控 服务已停止")
 
     def on_proxy_toggle(self):
         """全局代理开关切换"""
@@ -284,10 +284,10 @@ class MainController(QObject):
         if service == "mitm":
             self.is_mitm_running = status
             if status:
-                self.view.mitm_status_label.setText("MitmProxy: 运行中")
+                self.view.mitm_status_label.setText("青鸟监控: 运行中")
                 self.view.mitm_status_label.setStyleSheet("color: green; font-weight: bold;")
             else:
-                self.view.mitm_status_label.setText("MitmProxy: 未运行")
+                self.view.mitm_status_label.setText("青鸟监控: 未运行")
                 self.view.mitm_status_label.setStyleSheet("color: red; font-weight: bold;")
         elif service == "proxy":
             self.is_proxy_enabled = status
