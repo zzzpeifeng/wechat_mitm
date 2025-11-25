@@ -113,7 +113,7 @@ class MongoDBManager:
             logging.info(f"准备插入数据")
             # 使用 upsert 操作：如果存在相同 domain 的数据则更新，否则插入
             result = self.collection.update_one(
-                {"host": host, "chain_id": chain_id},  # 查询条件
+                {"host": host},  # 查询条件
                 {"$set": document},  # 更新数据
                 upsert=True  # 如果不存在则插入
             )
