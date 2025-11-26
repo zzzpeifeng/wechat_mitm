@@ -155,6 +155,7 @@ class QNDataCollector:
             # 组装店铺信息
             data_dict['offline_stores'].append(offline_store_dict)
             self.log(f"{store.get('name')}获取门店订座信息成功")
+            time.sleep(5)
         print(data_dict)
         self.db_manager.insert_online_rate(data_dict)
 
