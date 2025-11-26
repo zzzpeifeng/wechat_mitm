@@ -142,6 +142,8 @@ class QNDataCollector:
                 temp_book_seat_info = self.get_offline_store_data()
             for direct_item in temp_book_seat_info.get('data'):
                 # 组装区域信息
+                if direct_item.get('type') != "0":
+                    continue
                 area_list.append({
                     'area_name': direct_item.get('name'),
                     'online_machine_count': len(direct_item.get('on_machine')),
