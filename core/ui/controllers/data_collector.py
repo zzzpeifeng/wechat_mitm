@@ -156,8 +156,8 @@ class QNDataCollector:
             }
             # 组装店铺信息
             data_dict['offline_stores'].append(offline_store_dict)
-            self.log(f"{store.get('name')}获取门店订座信息成功")
-            time.sleep(5)
+            self.log(f"{store.get('name')}获取门店订座信息成功,等待2s，防止被封禁")
+            time.sleep(2)
         print(data_dict)
         self.db_manager.insert_online_rate(data_dict)
 
