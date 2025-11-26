@@ -93,7 +93,7 @@ class QNDataCollector:
         :param store_id: 门店ID
         :return:
         '''
-        url = f"https://{self.host}/default/select_chain"
+        url = f"https://{self.host}/default/session-mch"
         params = {
             "mch_id": offline_store_id
         }
@@ -137,8 +137,8 @@ class QNDataCollector:
             temp_book_seat_info = self.get_offline_store_data()
             print(temp_book_seat_info)
             while temp_book_seat_info.get('code') != 0:
-                self.log(f"{store.get('name')}获取门店订座信息失败，正在重试...:{temp_book_seat_info.get('msg')}，等待50s")
-                time.sleep(30)
+                self.log(f"{store.get('name')}获取门店订座信息失败，正在重试...:{temp_book_seat_info.get('msg')}，等待60s")
+                time.sleep(60)
                 temp_book_seat_info = self.get_offline_store_data()
             for direct_item in temp_book_seat_info.get('data'):
                 # 组装区域信息
