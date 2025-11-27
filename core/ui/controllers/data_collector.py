@@ -158,7 +158,7 @@ class QNDataCollector:
                 time.sleep(60)
                 retry_count += 1
                 if retry_count >= 3:
-                    self.log(f"{store.get('name')}获取门店订座信息失败，重试3次后仍失败，不获取该门店")
+                    self.log(f"{store.get('name')}获取门店订座信息失败，重试3次仍失败，放弃获取该门店")
                     break
 
                 selected_res = self.select_offline_store(offline_store_id)  # 选择门店
