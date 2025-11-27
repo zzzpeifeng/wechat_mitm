@@ -118,7 +118,6 @@ class QNDataCollector:
         # 获取一个连锁网吧的店铺信息
         self.load_cookie()
         store_info_resp = self.get_store_info()
-
         if store_info_resp['code'] == 0:
             self.log(f"获取品牌店铺信息成功:{store_info_resp.get('data').get('chain_name')}")
         else:
@@ -130,33 +129,48 @@ class QNDataCollector:
             'store_name': store_info_resp.get('data').get('chain_name'),
             'offline_stores': []
         }
+        # 获取门店列表
         offline_store_list = self.get_offline_store_list()
         if offline_store_list['code'] != 0:
             # print(f'获取门店列表信息失败:{self.cookie_header.get('chain-id')}')
             self.log(f'获取门店列表信息失败:{self.cookie_header.get("chain-id")}')
             self.log(self.cookie_header)
             return
-
+        # 循环门店列表
         for store in offline_store_list['data']:
             offline_store_id = store.get('id')
+
+            # 选择门店
             selected_res = self.select_offline_store(offline_store_id)  # 选择门店
             if selected_res['code'] != 0:
                 self.log(f'选择门店失败:{store.get("name")}')
                 continue
             self.log(f'选择门店成功:{store.get("name")}')
+
             # 获取门店订座信息
             area_list = []
+            # 重试三次，三次失败后不获取该门店，继续保存
+            retry_count = 0
             temp_book_seat_info = self.get_offline_store_data()
             while temp_book_seat_info.get('code') != 0:
                 self.log(
                     f"{store.get('name')}获取门店订座信息失败，正在重试...:{temp_book_seat_info.get('msg')}，等待60s")
                 time.sleep(60)
+                retry_count += 1
+                if retry_count >= 3:
+                    self.log(f"{store.get('name')}获取门店订座信息失败，重试3次后仍失败，不获取该门店")
+                    break
+
                 selected_res = self.select_offline_store(offline_store_id)  # 选择门店
                 if selected_res['code'] != 0:
                     self.log(f'选择门店失败:{store.get("name")}')
                     continue
                 self.log(f'选择门店成功:{store.get("name")}')
-                temp_book_seat_info = self.get_offline_store_data()
+                try:
+                    temp_book_seat_info = self.get_offline_store_data()
+                except Exception as e:
+                    self.log(f"{store.get('name')}获取门店订座信息失败，重试失败:{e}")
+                    continue
             self.log(f"{store.get('name')}获取门店订座信息成功,开始组装信息")
             offline_online_machine_count = 0
             offline_offline_machine_count = 0
