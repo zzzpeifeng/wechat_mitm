@@ -67,7 +67,7 @@ class QNDataCollector:
             # "Cookie": f"chain-id={self.CHAIN_ID}; chain={self.CHAIN}; {self.HM_LVT_KEY}={self.HM_LVT_VALUE}; HMACCOUNT={self.HMACCOUNT}; {self.HM_LPVT_KEY}={self.HM_LPVT_VALUE}",
             "Cookie": dict_to_cookie_string(self.cookie_header),
             "x-requested-with": "XMLHttpRequest",
-            "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36 NetType/WIFI MicroMessenger/7.0.20.1781(0x6700143B) MacWechat/3.8.7(0x13080712) UnifiedPCMacWechat(0xf2641112) XWEB/16730 Flue",
+            "user-agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_6_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 MicroMessenger/8.0.65(0x18004130) NetType/WIFI Language/zh_CN",
             "accept": "application/json, text/javascript, */*; q=0.01",
             "content-type": "application/x-www-form-urlencoded",
             "sec-fetch-site": "same-origin",
@@ -131,43 +131,61 @@ class QNDataCollector:
 
         for store in offline_store_list['data']:
             offline_store_id = store.get('id')
-            self.select_offline_store(offline_store_id)  # 选择门店
+            selected_res = self.select_offline_store(offline_store_id)  # 选择门店
+            if selected_res['code'] != 0:
+                self.log(f'选择门店失败:{store.get("name")}')
+                continue
+            self.log(f'选择门店成功:{store.get("name")}')
             # 获取门店订座信息
             area_list = []
             temp_book_seat_info = self.get_offline_store_data()
-            print(temp_book_seat_info)
             while temp_book_seat_info.get('code') != 0:
-                self.log(f"{store.get('name')}获取门店订座信息失败，正在重试...:{temp_book_seat_info.get('msg')}，等待60s")
+                self.log(
+                    f"{store.get('name')}获取门店订座信息失败，正在重试...:{temp_book_seat_info.get('msg')}，等待60s")
                 time.sleep(60)
+                selected_res = self.select_offline_store(offline_store_id)  # 选择门店
+                if selected_res['code'] != 0:
+                    self.log(f'选择门店失败:{store.get("name")}')
+                    continue
+                self.log(f'选择门店成功:{store.get("name")}')
                 temp_book_seat_info = self.get_offline_store_data()
+            self.log(f"{store.get('name')}获取门店订座信息成功,开始组装信息")
+            offline_online_machine_count = 0
+            offline_offline_machine_count = 0
             for direct_item in temp_book_seat_info.get('data'):
                 # 组装区域信息
+
                 if direct_item.get('type') != "0":
                     continue
+                item_online_machine_count = len(direct_item.get('on_machine'))
+                item_offline_machine_count = len(direct_item.get('off_machine'))
+
                 area_list.append({
                     'area_name': direct_item.get('name'),
-                    'online_machine_count': len(direct_item.get('on_machine')),
-                    'offline_machine_count': len(direct_item.get('off_machine'))
+                    'online_machine_count': item_online_machine_count,
+                    'offline_machine_count': item_offline_machine_count
                 })
+                offline_online_machine_count += item_online_machine_count
+                offline_offline_machine_count += item_offline_machine_count
             offline_store_dict = {
                 'offline_store_id': store.get('id'),
                 'offline_store_name': store.get('name'),
-                'areas': area_list
+                'areas': area_list,
+                'offline_machine_count': offline_offline_machine_count,
+                'online_machine_count': offline_online_machine_count
             }
             # 组装店铺信息
             data_dict['offline_stores'].append(offline_store_dict)
-            self.log(f"{store.get('name')}获取门店订座信息成功,等待2s，防止被封禁")
-            time.sleep(2)
+            self.log(f"{store.get('name')}获取门店订座信息成功,等待1s，防止被封禁")
+            time.sleep(1)
         print(data_dict)
         self.db_manager.insert_online_rate(data_dict)
-
 
 
 class DataCollectionWorker(QThread):
     finished = pyqtSignal()
     progress = pyqtSignal(str)
     log_message = pyqtSignal(str)  # 添加日志信号
-
 
     def __init__(self, qn_data_obj):
         super().__init__()
@@ -183,6 +201,7 @@ class DataCollectionWorker(QThread):
             self.progress.emit(f"数据采集失败:{e}")
         finally:
             self.finished.emit()
+
 
 if __name__ == '__main__':
     collector = QNDataCollector()
