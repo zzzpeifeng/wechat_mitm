@@ -55,28 +55,28 @@ class QNDataCollector:
         else:
             logger.warning("数据库连接失败，无法加载 cookie")
 
+    def get_store_info(self):
+        '''
+        获取门店信息
+        :return:
+        '''
+        # self.load_cookie()
+        url = f"https://{self.host}/default/index"
+
+        params = {
+            "chain_id": self.cookie_header.get('chain-id')
+        }
+        response = self.session.get(url, params=params, verify=False)
+        logger.info(f"获取门店信息:{response.text}")
+        return response.json()
+
     def get_offline_store_list(self):
         '''
         获取线下门店列表
         :return:
         '''
-        self.load_cookie()
-        url = f"https://{self.host}/default/chains"
 
-        headers = {
-            # "Cookie": f"chain-id={self.CHAIN_ID}; chain={self.CHAIN}; {self.HM_LVT_KEY}={self.HM_LVT_VALUE}; HMACCOUNT={self.HMACCOUNT}; {self.HM_LPVT_KEY}={self.HM_LPVT_VALUE}",
-            "Cookie": dict_to_cookie_string(self.cookie_header),
-            "x-requested-with": "XMLHttpRequest",
-            "user-agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_6_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 MicroMessenger/8.0.65(0x18004130) NetType/WIFI Language/zh_CN",
-            "accept": "application/json, text/javascript, */*; q=0.01",
-            "content-type": "application/x-www-form-urlencoded",
-            "sec-fetch-site": "same-origin",
-            "sec-fetch-mode": "cors",
-            "sec-fetch-dest": "empty",
-            "referer": f"https://{self.host}/release208/",
-            "accept-language": "zh-CN,zh;q=0.9",
-            "priority": "u=1, i"
-        }
+        url = f"https://{self.host}/default/chains"
 
         params = {
             "name": "",
@@ -115,11 +115,19 @@ class QNDataCollector:
         获取所有数据
         :return:
         '''
-        # 获取一个连锁网吧的门店信息
+        # 获取一个连锁网吧的店铺信息
         self.load_cookie()
+        store_info_resp = self.get_store_info()
+
+        if store_info_resp['code'] == 0:
+            self.log(f"获取品牌店铺信息成功:{store_info_resp.get('data').get('chain_name')}")
+        else:
+            self.log(f"获取品牌店铺信息失败:{store_info_resp.get('msg')}")
+            return
+
         data_dict = {
             'store_id': self.cookie_header.get('chain-id'),
-            'store_name': self.host,
+            'store_name': store_info_resp.get('data').get('chain_name'),
             'offline_stores': []
         }
         offline_store_list = self.get_offline_store_list()
