@@ -154,8 +154,8 @@ class QNDataCollector:
             temp_book_seat_info = self.get_offline_store_data()
             while temp_book_seat_info.get('code') != 0:
                 self.log(
-                    f"{store.get('name')}获取门店订座信息失败，正在重试...:{temp_book_seat_info.get('msg')}，等待60s")
-                time.sleep(60)
+                    f"{store.get('name')}获取门店订座信息失败，正在重试...:{temp_book_seat_info.get('msg')}，等待50s")
+                time.sleep(50)
                 retry_count += 1
                 if retry_count >= 3:
                     self.log(f"{store.get('name')}获取门店订座信息失败，重试3次仍失败，放弃获取该门店")
