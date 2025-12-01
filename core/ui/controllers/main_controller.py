@@ -202,7 +202,7 @@ class MainController(QObject):
                 self.view.mitm_service_btn.setChecked(False)
         else:
             # 停止服务
-            self.proxy_controller.stop_mitmproxy()
+            self.proxy_controller.stop_mitmproxy_gracefully()
             self.is_mitm_running = False
             self.view.control_panel.mitm_service_btn.setText("启动青鸟监控")
             self.view.status_panel.mitm_status_label.setText("青鸟监控: 未运行")
@@ -302,7 +302,7 @@ class MainController(QObject):
         """程序关闭时的清理工作"""
         # 停止所有服务
         if self.is_mitm_running:
-            self.proxy_controller.stop_mitmproxy()
+            self.proxy_controller.stop_mitmproxy_gracefully()
         if self.is_proxy_enabled:
             self.proxy_controller.disable_global_proxy()
 

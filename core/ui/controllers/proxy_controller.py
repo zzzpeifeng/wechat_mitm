@@ -169,6 +169,39 @@ class ProxyController:
 
         self.mitm_process = None
 
+    def stop_mitmproxy_gracefully(self):
+        """平滑退出mitmproxy服务"""
+        if self.mitm_process and self.mitm_process.poll() is None:
+            try:
+                # 发送SIGTERM信号进行优雅关闭
+                import signal
+                self.mitm_process.send_signal(signal.SIGTERM)
+
+                # 等待进程正常退出，最多等待10秒
+                try:
+                    self.mitm_process.wait(timeout=10)
+                    self.logger.info("mitmproxy服务已平滑退出")
+                except subprocess.TimeoutExpired:
+                    # 如果超时则强制终止
+                    self.logger.warning("mitmproxy服务未及时退出，正在强制终止")
+                    self.mitm_process.kill()
+                    self.mitm_process.wait()
+                    self.logger.info("mitmproxy服务已强制终止")
+
+            except Exception as e:
+                self.logger.error(f"平滑退出mitmproxy服务时出错: {str(e)}")
+                # 出现异常时尝试强制终止
+                try:
+                    self.mitm_process.kill()
+                    self.mitm_process.wait()
+                except:
+                    pass
+        else:
+            self.logger.info("mitmproxy服务未运行或已退出")
+
+        # 清理进程引用
+        self.mitm_process = None
+
     def enable_global_proxy(self) -> bool:
         """
         启用系统全局代理
