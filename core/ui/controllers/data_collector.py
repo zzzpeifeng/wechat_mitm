@@ -139,7 +139,9 @@ class QNDataCollector:
         # 循环门店列表
         for store in offline_store_list['data']:
             offline_store_id = store.get('id')
-
+            if offline_store_id == data_dict.get('store_id'):
+                self.log(f'门店id:{offline_store_id}与品牌店铺id相同，跳过')
+                continue
             # 选择门店
             selected_res = self.select_offline_store(offline_store_id)  # 选择门店
             if selected_res['code'] != 0:
@@ -176,7 +178,6 @@ class QNDataCollector:
             offline_offline_machine_count = 0
             for direct_item in temp_book_seat_info.get('data'):
                 # 组装区域信息
-
                 if direct_item.get('type') != "0":
                     continue
                 item_online_machine_count = len(direct_item.get('on_machine'))
