@@ -26,3 +26,14 @@ class DatabaseConfig:
     MONGODB_DATABASE = os.getenv('MONGODB_DATABASE', 'netbar_data')
     MONGODB_USERNAME = os.getenv('MONGODB_USERNAME', 'admin')
     MONGODB_PASSWORD = os.getenv('MONGODB_PASSWORD', 'xxxx')
+
+
+class FEISHUConfig:
+    """飞书配置类"""
+    FEISHU_APP_ID = os.getenv('FEISHU_APP_ID', 'xxxxx')
+    FEISHU_APP_SECRET = os.getenv('FEISHU_APP_SECRET', 'xxxx')
+    FEISHU_DOMAIN = os.getenv('FEISHU_DOMAIN', 'https://open.feishu.cn')
+
+
+if __name__ == '__main__':
+    print(FEISHUConfig.FEISHU_APP_ID)

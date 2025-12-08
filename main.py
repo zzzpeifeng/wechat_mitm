@@ -2,10 +2,8 @@
 import sys
 import logging
 from PyQt5.QtWidgets import QApplication
-
 from core.ui.views.main_window import MitmProxyMainView
 from core.ui.controllers.main_controller import MainController
-
 import sys
 import os
 
