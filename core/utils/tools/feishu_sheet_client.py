@@ -6,12 +6,18 @@ from config.settings import FEISHUConfig
 
 class FeishuSheetClient:
     def __init__(self, tenant_access_token=None):
-        self.tenant_access_token = tenant_access_token or self._get_tenant_access_token()
+        self.tenant_access_token = tenant_access_token
+        self.token_expire_time = 0
+        if tenant_access_token is None:
+            self._refresh_tenant_access_token()
         self.base_url = "https://open.feishu.cn/open-apis/sheets/v2/spreadsheets"
 
-    @staticmethod
-    def _get_tenant_access_token():
-        """获取租户访问令牌"""
+    def _is_token_expired(self):
+        """检查token是否即将过期（提前10分钟刷新）"""
+        return time.time() > self.token_expire_time - 600  # 提前10分钟刷新
+
+    def _refresh_tenant_access_token(self):
+        """获取或刷新租户访问令牌"""
         try:
             url = "https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal/"
             post_data = {
@@ -22,14 +28,23 @@ class FeishuSheetClient:
             response.raise_for_status()
             result = response.json()
             print(f"获取 token 的响应: {result}")  # 调试信息
-            if "tenant_access_token" in result:
-                return result["tenant_access_token"]
+            if "tenant_access_token" in result and "expire" in result:
+                self.tenant_access_token = result["tenant_access_token"]
+                # 设置过期时间（当前时间 + 有效期 - 1分钟安全缓冲）
+                self.token_expire_time = time.time() + result["expire"] - 60
+                return self.tenant_access_token
             else:
-                print(f"响应中缺少 tenant_access_token 字段: {result}")
+                print(f"响应中缺少 tenant_access_token 或 expire 字段: {result}")
                 return None
         except Exception as e:
             print(f"获取 tenant_access_token 失败: {e}")
             return None
+
+    def _ensure_valid_token(self):
+        """确保token有效，如果即将过期则刷新"""
+        if self.tenant_access_token is None or self._is_token_expired():
+            return self._refresh_tenant_access_token()
+        return self.tenant_access_token
 
     @staticmethod
     def extract_sheet_info_from_url(sheet_url: str) -> dict:
@@ -46,7 +61,7 @@ class FeishuSheetClient:
             from urllib.parse import urlparse, parse_qs
             # 解析URL
             parsed_url = urlparse(sheet_url)
-            
+
             # 提取spreadsheet_token（路径中的sht开头部分）
             path_parts = parsed_url.path.split('/')
             spreadsheet_token = None
@@ -54,11 +69,11 @@ class FeishuSheetClient:
                 if part.startswith('sht'):
                     spreadsheet_token = part
                     break
-            
+
             # 提取sheet_id（查询参数中的sheet）
             query_params = parse_qs(parsed_url.query)
             sheet_id = query_params.get('sheet', [None])[0]
-            
+
             return {
                 "spreadsheet_token": spreadsheet_token,
                 "sheet_id": sheet_id
@@ -90,28 +105,37 @@ class FeishuSheetClient:
             dict: 读取结果，包含 success 状态和数据或错误信息
         """
         try:
-            # 检查 tenant_access_token 是否有效
-            if not self.tenant_access_token:
+            # 确保 token 有效
+            if not self._ensure_valid_token():
                 return {
                     "success": False,
-                    "error_msg": "tenant_access_token 无效或未设置"
+                    "error_msg": "无法获取有效的 tenant_access_token"
                 }
-            
+
             # 构造请求URL
             if range_str:
                 url = f"{self.base_url}/{spreadsheet_token}/values/{sheet_id}!{range_str}"
             else:
                 url = f"{self.base_url}/{spreadsheet_token}/values/{sheet_id}"
-            
+
             print(f"请求URL: {url}")  # 调试信息
-            
+
             headers = self._get_headers()
-            
+
             # 发送GET请求
             response = requests.get(url, headers=headers)
             response.raise_for_status()
-            result = response.json()
             
+            # 检查响应内容
+            if not response.content:
+                print(f"响应内容为空")
+                return {
+                    "success": False,
+                    "error_msg": "响应内容为空"
+                }
+                
+            result = response.json()
+
             if result.get("code") == 0:
                 print(f"成功读取表格数据")
                 return {
@@ -126,13 +150,23 @@ class FeishuSheetClient:
                     "error_code": result.get("code"),
                     "error_msg": result.get("msg")
                 }
-                
+
         except requests.exceptions.HTTPError as e:
             print(f"读取表格数据时HTTP错误: {e}")
-            print(f"响应内容: {e.response.text if e.response else '无响应内容'}")
+            if e.response is not None:
+                print(f"响应状态码: {e.response.status_code}")
+                print(f"响应内容: {e.response.text}")
+            else:
+                print("无响应内容")
             return {
                 "success": False,
                 "error_msg": f"HTTP错误: {str(e)}"
+            }
+        except requests.exceptions.RequestException as e:
+            print(f"读取表格数据时请求异常: {e}")
+            return {
+                "success": False,
+                "error_msg": f"请求异常: {str(e)}"
             }
         except Exception as e:
             print(f"读取表格数据时发生异常: {e}")
@@ -155,18 +189,18 @@ class FeishuSheetClient:
             dict: 写入结果，包含 success 状态和数据或错误信息
         """
         try:
-            # 检查 tenant_access_token 是否有效
-            if not self.tenant_access_token:
+            # 确保 token 有效
+            if not self._ensure_valid_token():
                 return {
                     "success": False,
-                    "error_msg": "tenant_access_token 无效或未设置"
+                    "error_msg": "无法获取有效的 tenant_access_token"
                 }
-            
+
             # 构造请求URL
             url = f"{self.base_url}/{spreadsheet_token}/values"
-            
+
             headers = self._get_headers()
-            
+
             # 构造请求体
             post_data = {
                 "valueRange": {
@@ -174,15 +208,24 @@ class FeishuSheetClient:
                     "values": values
                 }
             }
-            
+
             print(f"写入请求URL: {url}")  # 调试信息
             print(f"写入请求数据: {post_data}")  # 调试信息
-            
+
             # 发送PUT请求
             response = requests.put(url, headers=headers, data=json.dumps(post_data))
             response.raise_for_status()
-            result = response.json()
             
+            # 检查响应内容
+            if not response.content:
+                print(f"响应内容为空")
+                return {
+                    "success": False,
+                    "error_msg": "响应内容为空"
+                }
+                
+            result = response.json()
+
             if result.get("code") == 0:
                 print(f"成功写入表格数据")
                 return {
@@ -197,13 +240,23 @@ class FeishuSheetClient:
                     "error_code": result.get("code"),
                     "error_msg": result.get("msg")
                 }
-                
+
         except requests.exceptions.HTTPError as e:
             print(f"写入表格数据时HTTP错误: {e}")
-            print(f"响应内容: {e.response.text if e.response else '无响应内容'}")
+            if e.response is not None:
+                print(f"响应状态码: {e.response.status_code}")
+                print(f"响应内容: {e.response.text}")
+            else:
+                print("无响应内容")
             return {
                 "success": False,
                 "error_msg": f"HTTP错误: {str(e)}"
+            }
+        except requests.exceptions.RequestException as e:
+            print(f"写入表格数据时请求异常: {e}")
+            return {
+                "success": False,
+                "error_msg": f"请求异常: {str(e)}"
             }
         except Exception as e:
             print(f"写入表格数据时发生异常: {e}")
@@ -225,33 +278,43 @@ class FeishuSheetClient:
             dict: 追加结果，包含 success 状态和数据或错误信息
         """
         try:
-            # 检查 tenant_access_token 是否有效
-            if not self.tenant_access_token:
+            # 确保 token 有效
+            if not self._ensure_valid_token():
                 return {
                     "success": False,
-                    "error_msg": "tenant_access_token 无效或未设置"
+                    "error_msg": "无法获取有效的 tenant_access_token"
                 }
-            
-            # 构造请求URL
-            url = f"{self.base_url}/{spreadsheet_token}/values/{sheet_id}:append"
-            
+
+            # 构造请求URL (根据您提供的正确格式进行修正)
+            url = f"{self.base_url}/{spreadsheet_token}/values_append"
+
             headers = self._get_headers()
-            
-            # 构造请求体
+
+            # 构造请求体 (根据您提供的正确格式进行修正)
             post_data = {
                 "valueRange": {
+                    "range": sheet_id,
                     "values": values
                 }
             }
-            
+
             print(f"追加请求URL: {url}")  # 调试信息
             print(f"追加请求数据: {post_data}")  # 调试信息
-            
+
             # 发送POST请求
             response = requests.post(url, headers=headers, data=json.dumps(post_data))
             response.raise_for_status()
-            result = response.json()
             
+            # 检查响应内容
+            if not response.content:
+                print(f"响应内容为空")
+                return {
+                    "success": False,
+                    "error_msg": "响应内容为空"
+                }
+                
+            result = response.json()
+
             if result.get("code") == 0:
                 print(f"成功追加表格数据")
                 return {
@@ -266,13 +329,23 @@ class FeishuSheetClient:
                     "error_code": result.get("code"),
                     "error_msg": result.get("msg")
                 }
-                
+
         except requests.exceptions.HTTPError as e:
             print(f"追加表格数据时HTTP错误: {e}")
-            print(f"响应内容: {e.response.text if e.response else '无响应内容'}")
+            if e.response is not None:
+                print(f"响应状态码: {e.response.status_code}")
+                print(f"响应内容: {e.response.text}")
+            else:
+                print("无响应内容")
             return {
                 "success": False,
                 "error_msg": f"HTTP错误: {str(e)}"
+            }
+        except requests.exceptions.RequestException as e:
+            print(f"追加表格数据时请求异常: {e}")
+            return {
+                "success": False,
+                "error_msg": f"请求异常: {str(e)}"
             }
         except Exception as e:
             print(f"追加表格数据时发生异常: {e}")
@@ -292,25 +365,34 @@ class FeishuSheetClient:
             dict: 元数据信息，包含 success 状态和数据或错误信息
         """
         try:
-            # 检查 tenant_access_token 是否有效
-            if not self.tenant_access_token:
+            # 确保 token 有效
+            if not self._ensure_valid_token():
                 return {
                     "success": False,
-                    "error_msg": "tenant_access_token 无效或未设置"
+                    "error_msg": "无法获取有效的 tenant_access_token"
                 }
-            
+
             # 构造请求URL
             url = f"{self.base_url}/{spreadsheet_token}/sheets"
-            
+
             headers = self._get_headers()
-            
+
             print(f"获取元数据请求URL: {url}")  # 调试信息
-            
+
             # 发送GET请求
             response = requests.get(url, headers=headers)
             response.raise_for_status()
-            result = response.json()
             
+            # 检查响应内容
+            if not response.content:
+                print(f"响应内容为空")
+                return {
+                    "success": False,
+                    "error_msg": "响应内容为空"
+                }
+                
+            result = response.json()
+
             if result.get("code") == 0:
                 print(f"成功获取表格元数据")
                 return {
@@ -326,13 +408,23 @@ class FeishuSheetClient:
                     "error_code": result.get("code"),
                     "error_msg": result.get("msg")
                 }
-                
+
         except requests.exceptions.HTTPError as e:
             print(f"获取表格元数据时HTTP错误: {e}")
-            print(f"响应内容: {e.response.text if e.response else '无响应内容'}")
+            if e.response is not None:
+                print(f"响应状态码: {e.response.status_code}")
+                print(f"响应内容: {e.response.text}")
+            else:
+                print("无响应内容")
             return {
                 "success": False,
                 "error_msg": f"HTTP错误: {str(e)}"
+            }
+        except requests.exceptions.RequestException as e:
+            print(f"获取表格元数据时请求异常: {e}")
+            return {
+                "success": False,
+                "error_msg": f"请求异常: {str(e)}"
             }
         except Exception as e:
             print(f"获取表格元数据时发生异常: {e}")
@@ -345,24 +437,26 @@ class FeishuSheetClient:
 if __name__ == '__main__':
     # 使用示例
     client = FeishuSheetClient()
-    
+
     # 示例：从URL提取信息
     # url = "https://example.feishu.cn/sheets/shtcnxxxxxxxxxxxxxxx?sheet=402cb1"
     # sheet_info = client.extract_sheet_info_from_url(url)
     # print(sheet_info)  # {'spreadsheet_token': 'shtcnxxxxxxxxxxxxxxx', 'sheet_id': '402cb1'}
-    
+
     # 示例：读取数据
     result = client.read_sheet_data("LkgdwebJHi5yOUkgOPAc2fnonFb", "9a4941", "A1:B10")
+    print(result)
     
     # 示例：写入数据
     # data = [["姓名", "年龄"], ["张三", 25], ["李四", 30]]
     # result = client.write_sheet_data("shtcnxxxxxxxxxxxxxxx", "sheet1", "A1:B3", data)
-    
+
     # 示例：追加数据
-    # data = [["王五", 28]]
-    # result = client.append_sheet_data("shtcnxxxxxxxxxxxxxxx", "sheet1", data)
-    
+    data = [["1", "测试店铺1","测试门店1",'在线坐席数','空闲坐席数','总坐席数','记录时间','其他数据001','备注001'],
+            ["2", "测试店铺2","测试门店2",'在线坐席数','空闲坐席数','总坐席数','记录时间','其他数据002','备注002']]
+    result = client.append_sheet_data("LkgdwebJHi5yOUkgOPAc2fnonFb", "9a4941", data)
+
     # 示例：获取元数据
     # result = client.get_sheet_metadata("shtcnxxxxxxxxxxxxxxx")
-    
+
     pass
