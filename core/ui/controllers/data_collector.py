@@ -8,6 +8,7 @@ from PyQt5.QtCore import QThread, pyqtSignal
 
 load_dotenv()
 from core.utils.database import get_db_manager
+from core.utils.tools.feishu_sheet_client import FeishuSheetClient
 
 # 配置日志
 logging.basicConfig(level=logging.INFO)
@@ -25,6 +26,8 @@ class QNDataCollector:
         self.cookie_header = None
         self.session = requests.Session()
         self.log_callback = None  # 添加日志回调属性
+        # 初始化飞书表格客户端
+        self.feishu_client = FeishuSheetClient()
 
     def log(self, message):
         """日志输出方法"""
@@ -110,6 +113,63 @@ class QNDataCollector:
         response = self.session.get(url, verify=False)
         return response.json()
 
+    def upload_to_feishu_sheet(self, data_dict):
+        """
+        将数据上传到飞书电子表格
+        
+        Args:
+            data_dict (dict): 从青鸟平台获取的数据
+        """
+        try:
+            # 表格配置信息（需要根据实际情况修改）
+            SPREADSHEET_TOKEN = "LkgdwebJHi5yOUkgOPAc2fnonFb"  # 电子表格token
+            SHEET_ID = "9a4941"  # 工作表ID
+            
+            # 构造表头
+            # header = ["ID", "店铺", "门店", "在线坐席数", "空闲坐席数", "总座位数", "记录时间", "其他数据", "备注"]
+            
+            # 构造数据行
+            rows = []
+            timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+            
+            # 处理每个线下门店的数据
+            for index, store in enumerate(data_dict.get('offline_stores', []), 1):
+                # 计算总座位数
+                total_seats = store.get('online_machine_count', 0) + store.get('offline_machine_count', 0)
+                
+                row = [
+                    str(index),  # ID
+                    data_dict.get('store_name', ''),  # 店铺
+                    store.get('offline_store_name', ''),  # 门店
+                    str(store.get('online_machine_count', '-')),  # 在线坐席数
+                    str(store.get('offline_machine_count', '-')),  # 空闲坐席数
+                    str(total_seats),  # 总座位数
+                    timestamp,  # 记录时间
+                    "",  # 其他数据（可按需填充）
+                    ""  # 备注（可按需填充）
+                ]
+                rows.append(row)
+            
+            # 如果有数据需要上传
+            if rows:
+                # 调用飞书表格客户端追加数据
+                result = self.feishu_client.append_sheet_data(SPREADSHEET_TOKEN, SHEET_ID, rows)
+                
+                if result.get("success"):
+                    self.log(f"成功上传 {len(rows)} 条数据到飞书表格")
+                    return True
+                else:
+                    error_msg = result.get("error_msg", "未知错误")
+                    self.log(f"上传数据到飞书表格失败: {error_msg}")
+                    return False
+            else:
+                self.log("没有数据需要上传到飞书表格")
+                return True
+                
+        except Exception as e:
+            self.log(f"上传数据到飞书表格时发生异常: {e}")
+            return False
+
     def get_all_data(self):
         '''
         获取所有数据
@@ -141,10 +201,6 @@ class QNDataCollector:
             offline_store_id = store.get('id')
             if offline_store_id == data_dict.get('store_id'):
                 self.log(f'门店id:{offline_store_id}与品牌店铺id相同，跳过')
-                continue
-            # 过滤地址
-            if store.get('gps_addr').find('太原'):
-                self.log(f'门店地址:{store.get("gps_addr")}不符合要求，跳过')
                 continue
             # 选择门店
             selected_res = self.select_offline_store(offline_store_id)  # 选择门店
@@ -207,6 +263,14 @@ class QNDataCollector:
             time.sleep(2)
         print(data_dict)
         self.db_manager.insert_online_rate(data_dict)
+        
+        # 上传数据到飞书表格
+        self.log("开始上传数据到飞书表格...")
+        upload_success = self.upload_to_feishu_sheet(data_dict)
+        if upload_success:
+            self.log("数据上传到飞书表格完成")
+        else:
+            self.log("数据上传到飞书表格失败")
 
 
 class DataCollectionWorker(QThread):
