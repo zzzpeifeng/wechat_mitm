@@ -6,7 +6,8 @@ from PyQt5.QtWidgets import (
     QLineEdit
 )
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QFont, QTextCursor
+from PyQt5.QtGui import QFont, QTextCursor, QColor, QPalette
+import platform
 
 from core.ui.views.components.control_panel import ControlPanel
 
@@ -23,7 +24,18 @@ class MitmProxyMainView(QMainWindow):
     def init_ui(self):
         """初始化用户界面布局"""
         self.setWindowTitle("MitmProxy 控制面板")
-        self.setGeometry(100, 100, 800, 600)
+        
+        # 设置窗口大小
+        self.setGeometry(100, 100, 1000, 700)
+        # 设置窗口最小大小
+        self.setMinimumSize(800, 600)
+        
+        # 在 macOS 上启用原生窗口装饰
+        if platform.system() == "Darwin":
+            self.setWindowFlags(Qt.Window)
+        
+        # 设置整体样式
+        self.setStyleSheet(self.get_stylesheet())
 
         # 创建中央部件
         central_widget = QWidget()
@@ -31,6 +43,8 @@ class MitmProxyMainView(QMainWindow):
 
         # 主布局
         main_layout = QVBoxLayout(central_widget)
+        main_layout.setSpacing(15)
+        main_layout.setContentsMargins(20, 20, 20, 20)
 
         # 标题
         title_label = self._create_title_label()
@@ -54,19 +68,168 @@ class MitmProxyMainView(QMainWindow):
         # 自动滚动到底部
         self.log_panel.log_text.moveCursor(QTextCursor.End)
 
+    def get_stylesheet(self):
+        """获取应用程序样式表"""
+        return """
+        QMainWindow {
+            background-color: #f5f7fa;
+        }
+        
+        /* 标题栏样式 */
+        QMainWindow::title {
+            background-color: #409eff;
+            color: white;
+            padding: 10px;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        
+        QLabel {
+            color: #606266;
+            font-size: 14px;
+        }
+        
+        QPushButton {
+            background-color: #409eff;
+            border: none;
+            color: white;
+            padding: 9px 15px;
+            font-size: 14px;
+            border-radius: 4px;
+            min-height: 30px;
+        }
+        
+        QPushButton:hover {
+            background-color: #66b1ff;
+        }
+        
+        QPushButton:pressed {
+            background-color: #3a8ee6;
+        }
+        
+        QPushButton:disabled {
+            background-color: #a0cfff;
+            color: #ffffff;
+        }
+        
+        QGroupBox {
+            font-size: 16px;
+            font-weight: bold;
+            border: 1px solid #dcdfe6;
+            border-radius: 4px;
+            margin-top: 1ex;
+            padding-top: 10px;
+            padding-bottom: 10px;
+            background-color: white;
+        }
+        
+        QGroupBox::title {
+            subcontrol-origin: margin;
+            subcontrol-position: top center;
+            padding: 0 10px;
+            color: #303133;
+        }
+        
+        QLineEdit {
+            border: 1px solid #dcdfe6;
+            border-radius: 4px;
+            padding: 8px 10px;
+            font-size: 14px;
+            background-color: #ffffff;
+        }
+        
+        QLineEdit:focus {
+            border: 1px solid #409eff;
+        }
+        
+        QTextEdit {
+            border: 1px solid #dcdfe6;
+            border-radius: 4px;
+            padding: 10px;
+            font-size: 13px;
+            background-color: #ffffff;
+            color: #606266;
+        }
+        
+        QTableWidget {
+            border: 1px solid #dcdfe6;
+            border-radius: 4px;
+            gridline-color: #ebeef5;
+            background-color: #ffffff;
+            selection-background-color: #ecf5ff;
+            selection-color: #606266;
+        }
+        
+        QTableWidget::item {
+            padding: 5px;
+        }
+        
+        QHeaderView::section {
+            background-color: #f5f7fa;
+            color: #909399;
+            padding: 8px;
+            font-weight: normal;
+            border: none;
+            border-bottom: 1px solid #dcdfe6;
+        }
+        
+        QScrollBar:vertical {
+            border: none;
+            background: #f5f7fa;
+            width: 10px;
+            margin: 0px 0px 0px 0px;
+        }
+        
+        QScrollBar::handle:vertical {
+            background: #c0c4cc;
+            border-radius: 5px;
+            min-height: 20px;
+        }
+        
+        QScrollBar::handle:vertical:hover {
+            background: #a0a4ac;
+        }
+        
+        QScrollBar:horizontal {
+            border: none;
+            background: #f5f7fa;
+            height: 10px;
+            margin: 0px 0px 0px 0px;
+        }
+        
+        QScrollBar::handle:horizontal {
+            background: #c0c4cc;
+            border-radius: 5px;
+            min-width: 20px;
+        }
+        
+        QScrollBar::handle:horizontal:hover {
+            background: #a0a4ac;
+        }
+        """
+
     def _create_title_label(self) -> QLabel:
         """创建标题标签"""
         title_label = QLabel("MitmProxy 控制面板")
         title_font = QFont()
-        title_font.setPointSize(16)
+        title_font.setPointSize(20)
         title_font.setBold(True)
         title_label.setFont(title_font)
         title_label.setAlignment(Qt.AlignCenter)
+        title_label.setStyleSheet("""
+            color: #303133;
+            margin-bottom: 10px;
+            padding: 10px;
+            background-color: white;
+            border-radius: 4px;
+            border: 1px solid #ebeef5;
+        """)
         return title_label
 
     def _create_control_area(self) -> QHBoxLayout:
         """创建控制区域布局"""
         control_layout = QHBoxLayout()
+        control_layout.setSpacing(20)
 
         # 使用完整的 ControlPanel 替代手工创建的控件
         self.control_panel = ControlPanel()
@@ -79,6 +242,7 @@ class MitmProxyMainView(QMainWindow):
         from core.ui.views.components.status_panel import StatusPanel
 
         status_layout = QHBoxLayout()
+        status_layout.setSpacing(20)
 
         # 使用 StatusPanel 组件替代手工创建的状态显示控件
         self.status_panel = StatusPanel()
@@ -91,6 +255,7 @@ class MitmProxyMainView(QMainWindow):
         from core.ui.views.components.log_panel import LogPanel
 
         log_layout = QVBoxLayout()
+        log_layout.setSpacing(10)
 
         # 使用 LogPanel 组件替代手工创建的日志显示控件
         self.log_panel = LogPanel()
@@ -101,6 +266,11 @@ class MitmProxyMainView(QMainWindow):
 def main():
     """测试入口"""
     app = QApplication(sys.argv)
+    
+    # 设置应用程序全局字体
+    font = QFont("Segoe UI", 9)
+    app.setFont(font)
+    
     window = MitmProxyMainView()
     window.show()
     sys.exit(app.exec_())

@@ -1,7 +1,8 @@
 # ui/controllers/main_controller.py
-from PyQt5.QtCore import QObject, pyqtSignal,Qt
+from PyQt5.QtCore import QObject, pyqtSignal, Qt
 from typing import List
 import logging
+from datetime import datetime
 
 from PyQt5.QtWidgets import QTableWidgetItem
 
@@ -174,7 +175,6 @@ class MainController(QObject):
             self.view.log_message(f"保存域名失败: {str(e)}")
             return False
 
-
         # 获取目标域名
         domain_text = self.view.control_panel.domain_input.text()
         target_domains = [d.strip() for d in domain_text.split(',') if d.strip()]
@@ -194,19 +194,28 @@ class MainController(QObject):
             if success:
                 self.is_mitm_running = True
                 self.view.control_panel.mitm_service_btn.setText("停止青鸟监控")
-                self.view.status_panel.mitm_status_label.setText("青鸟监控: 运行中")
-                self.view.status_panel.mitm_status_label.setStyleSheet("color: green; font-weight: bold;")
+                self.view.control_panel.mitm_service_btn.setStyleSheet("""
+                    QPushButton {
+                        background-color: #f56c6c;
+                    }
+                    QPushButton:hover {
+                        background-color: #f78989;
+                    }
+                    QPushButton:pressed {
+                        background-color: #dd6161;
+                    }
+                """)
+                self.view.status_panel.update_mitm_status(True)
                 self.view.log_message("青鸟平台服务启动成功")
             else:
                 self.view.log_message("青鸟平台服务启动失败")
-                self.view.mitm_service_btn.setChecked(False)
         else:
             # 停止服务
             self.proxy_controller.stop_mitmproxy_gracefully()
             self.is_mitm_running = False
             self.view.control_panel.mitm_service_btn.setText("启动青鸟监控")
-            self.view.status_panel.mitm_status_label.setText("青鸟监控: 未运行")
-            self.view.status_panel.mitm_status_label.setStyleSheet("color: red; font-weight: bold;")
+            self.view.control_panel.mitm_service_btn.setStyleSheet("")
+            self.view.status_panel.update_mitm_status(False)
             self.view.log_message("青鸟监控 服务已停止")
 
     def on_proxy_toggle(self):
@@ -217,58 +226,74 @@ class MainController(QObject):
             if success:
                 self.is_proxy_enabled = True
                 self.view.control_panel.proxy_btn.setText("禁用全局代理")
-                self.view.status_panel.proxy_status_label.setText("全局代理: 已启用")
-                self.view.status_panel.proxy_status_label.setStyleSheet("color: green; font-weight: bold;")
+                self.view.control_panel.proxy_btn.setStyleSheet("""
+                    QPushButton {
+                        background-color: #f56c6c;
+                    }
+                    QPushButton:hover {
+                        background-color: #f78989;
+                    }
+                    QPushButton:pressed {
+                        background-color: #dd6161;
+                    }
+                """)
+                self.view.status_panel.update_proxy_status(True)
                 self.view.log_message("全局代理已启用")
             else:
                 self.view.log_message("全局代理启用失败")
-                self.view.proxy_btn.setChecked(False)
         else:
             # 禁用代理
             self.proxy_controller.disable_global_proxy()
             self.is_proxy_enabled = False
             self.view.control_panel.proxy_btn.setText("启用全局代理")
-            self.view.status_panel.proxy_status_label.setText("全局代理: 未启用")
-            self.view.status_panel.proxy_status_label.setStyleSheet("color: red; font-weight: bold;")
+            self.view.control_panel.proxy_btn.setStyleSheet("")
+            self.view.status_panel.update_proxy_status(False)
             self.view.log_message("全局代理已禁用")
-
 
     def on_crawler_toggle(self):
         """爬虫开关切换"""
-        # 先关闭全局代理、修改按钮状态
-        self.proxy_controller.disable_global_proxy()
-        self.is_proxy_enabled = False
-        self.view.control_panel.proxy_btn.setText("启用全局代理")
-        self.view.status_panel.proxy_status_label.setText("全局代理: 未启用")
-        self.view.status_panel.proxy_status_label.setStyleSheet("color: red; font-weight: bold;")
-        self.view.log_message("由于开始爬虫，全局代理已禁用")
+        # 注意：按钮在点击后会自动切换checked状态
+        if self.view.control_panel.crawler_btn.isChecked():
+            # 爬虫开始
+            # 创建并启动工作线程
+            self.data_collection_worker = DataCollectionWorker(self.data_qn_collector)
+            self.data_collection_worker.finished.connect(self.on_data_collection_finished)
+            self.data_collection_worker.progress.connect(self.view.log_message)
+            self.data_collection_worker.log_message.connect(self.view.log_message)  # 连接日志信号
+            self.data_collection_worker.start()
 
-        # 爬虫开始
-        # 创建并启动工作线程
-        self.data_collection_worker = DataCollectionWorker(self.data_qn_collector)
-        self.data_collection_worker.finished.connect(self.on_data_collection_finished)
-        self.data_collection_worker.progress.connect(self.view.log_message)
-        self.data_collection_worker.log_message.connect(self.view.log_message)  # 连接日志信号
-        self.data_collection_worker.start()
+            # 修改按钮状态
+            self.view.control_panel.crawler_btn.setText("停止青鸟爬虫")
+            self.view.control_panel.crawler_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #f56c6c;
+                }
+                QPushButton:hover {
+                    background-color: #f78989;
+                }
+                QPushButton:pressed {
+                    background-color: #dd6161;
+                }
+            """)
 
-        # 禁用爬虫按钮防止重复点击
-        self.view.control_panel.crawler_btn.setEnabled(False)
-        self.view.control_panel.crawler_btn.setText("数据收集中...")
-
+            self.view.log_message("开始执行青鸟爬虫任务...")
+        else:
+            # 停止爬虫（如果需要实现停止功能的话）
+            self.view.control_panel.crawler_btn.setText("启动青鸟爬虫")
+            self.view.control_panel.crawler_btn.setStyleSheet("")
+            self.view.log_message("青鸟爬虫任务已完成")
 
     def on_data_collection_finished(self):
         """数据收集完成回调"""
-        self.view.control_panel.crawler_btn.setEnabled(True)
-        self.view.control_panel.crawler_btn.setText("开始爬虫")
+        self.view.control_panel.crawler_btn.setText("启动青鸟爬虫")
+        self.view.control_panel.crawler_btn.setStyleSheet("")
+        self.view.control_panel.crawler_btn.setChecked(False)
         self.view.log_message("数据收集任务已完成")
 
         # 清理工作线程
-        if self.qn_data_worker:
-            self.qn_data_worker.deleteLater()
-            self.qn_data_worker = None
-
-
-
+        if self.data_collection_worker:
+            self.data_collection_worker.deleteLater()
+            self.data_collection_worker = None
 
     def on_clear_logs(self):
         """清除日志"""
@@ -277,26 +302,16 @@ class MainController(QObject):
     def on_data_collected(self, count: int):
         """数据收集回调"""
         self.collected_count += count
-        self.view.collected_count_label.setText(f"已收集数据: {self.collected_count} 条")
+        self.view.status_panel.collected_count_label.setText(f"已收集数据: {self.collected_count} 条")
 
     def on_status_updated(self, service: str, status: bool):
         """状态更新回调"""
         if service == "mitm":
             self.is_mitm_running = status
-            if status:
-                self.view.mitm_status_label.setText("青鸟监控: 运行中")
-                self.view.mitm_status_label.setStyleSheet("color: green; font-weight: bold;")
-            else:
-                self.view.mitm_status_label.setText("青鸟监控: 未运行")
-                self.view.mitm_status_label.setStyleSheet("color: red; font-weight: bold;")
+            self.view.status_panel.update_mitm_status(status)
         elif service == "proxy":
             self.is_proxy_enabled = status
-            if status:
-                self.view.proxy_status_label.setText("全局代理: 已启用")
-                self.view.proxy_status_label.setStyleSheet("color: green; font-weight: bold;")
-            else:
-                self.view.proxy_status_label.setText("全局代理: 未启用")
-                self.view.proxy_status_label.setStyleSheet("color: red; font-weight: bold;")
+            self.view.status_panel.update_proxy_status(status)
 
     def shutdown(self):
         """程序关闭时的清理工作"""

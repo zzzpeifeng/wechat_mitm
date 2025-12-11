@@ -227,9 +227,7 @@ class ChainCookieInterceptor:
 
 
 # 创建全局实例
-print("Before creating global interceptor instance")
 interceptor = ChainCookieInterceptor()
-print("Global interceptor instance created successfully")
 
 
 def configure(updated: dict) -> None:
