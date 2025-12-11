@@ -1,6 +1,7 @@
 # core/data_collector.py
 import time
 import logging
+import uuid
 from dotenv import load_dotenv
 import requests
 from core.utils.tools.tools import dict_to_cookie_string, parse_cookie_header
@@ -124,25 +125,25 @@ class QNDataCollector:
             # 表格配置信息（需要根据实际情况修改）
             SPREADSHEET_TOKEN = "LkgdwebJHi5yOUkgOPAc2fnonFb"  # 电子表格token
             SHEET_ID = "9a4941"  # 工作表ID
-            
-            # 构造表头
-            # header = ["ID", "店铺", "门店", "在线坐席数", "空闲坐席数", "总座位数", "记录时间", "其他数据", "备注"]
-            
+
             # 构造数据行
             rows = []
             timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
             
             # 处理每个线下门店的数据
             for index, store in enumerate(data_dict.get('offline_stores', []), 1):
+                # 生成唯一的ID（使用UUID）
+                unique_id = str(uuid.uuid4())
+                
                 # 计算总座位数
                 total_seats = store.get('online_machine_count', 0) + store.get('offline_machine_count', 0)
                 
                 row = [
-                    str(index),  # ID
+                    unique_id,  # ID（使用UUID保证唯一性）
                     data_dict.get('store_name', ''),  # 店铺
                     store.get('offline_store_name', ''),  # 门店
-                    str(store.get('online_machine_count', '-')),  # 在线坐席数
-                    str(store.get('offline_machine_count', '-')),  # 空闲坐席数
+                    str(store.get('online_machine_count', 0)),  # 在线坐席数
+                    str(store.get('offline_machine_count', 0)),  # 空闲坐席数
                     str(total_seats),  # 总座位数
                     timestamp,  # 记录时间
                     "",  # 其他数据（可按需填充）
@@ -154,7 +155,6 @@ class QNDataCollector:
             if rows:
                 # 调用飞书表格客户端追加数据
                 result = self.feishu_client.append_sheet_data(SPREADSHEET_TOKEN, SHEET_ID, rows)
-                
                 if result.get("success"):
                     self.log(f"成功上传 {len(rows)} 条数据到飞书表格")
                     return True
@@ -201,6 +201,10 @@ class QNDataCollector:
             offline_store_id = store.get('id')
             if offline_store_id == data_dict.get('store_id'):
                 self.log(f'门店id:{offline_store_id}与品牌店铺id相同，跳过')
+                continue
+            # 过滤地址
+            if store.get('gps_addr').find('太原'):
+                self.log(f'门店地址:{store.get("gps_addr")}不符合要求，跳过')
                 continue
             # 选择门店
             selected_res = self.select_offline_store(offline_store_id)  # 选择门店
