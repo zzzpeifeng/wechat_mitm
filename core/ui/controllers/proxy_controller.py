@@ -1,11 +1,21 @@
 # core/proxy_controller.py
-import shutil
-import subprocess
 import platform
 import os
 import sys
+import asyncio
+import threading
 from typing import Optional
 import logging
+
+# 导入mitmproxy相关模块
+from mitmproxy.tools.dump import DumpMaster
+from mitmproxy.options import Options
+
+# 添加项目根目录到Python路径，以便可以导入自定义模块
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+
+# 导入拦截器模块
+from core.scripts.mitmproxy_handler import interceptor
 
 
 class ProxyController:
@@ -14,64 +24,11 @@ class ProxyController:
     """
 
     def __init__(self):
-        self.mitm_process: Optional[subprocess.Popen] = None
+        self.master_thread: Optional[threading.Thread] = None
+        self.master_instance: Optional[DumpMaster] = None
+        self.loop: Optional[asyncio.AbstractEventLoop] = None
         self.logger = logging.getLogger(__name__)
-
-    def _find_mitmdump(self) -> str:
-        """
-        查找mitmdump可执行文件路径，适配不同操作系统和PyInstaller环境
-
-        Returns:
-            str: mitmdump可执行文件路径
-
-        Raises:
-            FileNotFoundError: 找不到mitmdump命令
-        """
-        # PyInstaller打包环境下的特殊处理
-        if getattr(sys, 'frozen', False):
-            # 获取可执行文件所在目录
-            bundle_dir = os.path.dirname(sys.executable)
-
-            # 根据不同操作系统构造mitmdump路径
-            if platform.system() == "Windows":
-                mitmdump_exe = os.path.join(bundle_dir, 'mitmdump.exe')
-            else:  # macOS/Linux
-                mitmdump_exe = os.path.join(bundle_dir, 'mitmdump')
-
-            if os.path.exists(mitmdump_exe):
-                return mitmdump_exe
-        elif getattr(sys, '_MEIPASS', False):  # PyInstaller运行时资源目录
-            # 获取PyInstaller资源目录
-            bundle_dir = sys._MEIPASS
-
-            # 根据不同操作系统构造mitmdump路径
-            if platform.system() == "Windows":
-                mitmdump_exe = os.path.join(bundle_dir, 'mitmdump.exe')
-            else:  # macOS/Linux
-                mitmdump_exe = os.path.join(bundle_dir, 'mitmdump')
-
-            if os.path.exists(mitmdump_exe):
-                return mitmdump_exe
-
-        # 在系统PATH中查找mitmdump
-        mitmdump_path = shutil.which('mitmdump')
-        if mitmdump_path:
-            return mitmdump_path
-
-        # 在常见的Python环境目录中查找
-        if hasattr(sys, 'real_prefix') or (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix):
-            # 虚拟环境中的查找
-            if platform.system() == "Windows":
-                scripts_dir = os.path.join(sys.prefix, 'Scripts')
-                mitmdump_exe = os.path.join(scripts_dir, 'mitmdump.exe')
-            else:  # macOS/Linux
-                scripts_dir = os.path.join(sys.prefix, 'bin')
-                mitmdump_exe = os.path.join(scripts_dir, 'mitmdump')
-
-            if os.path.exists(mitmdump_exe):
-                return mitmdump_exe
-
-        raise FileNotFoundError("mitmdump命令未找到，请确保mitmproxy已正确安装")
+        self.is_running = False
 
     def start_mitmproxy(self, log_callback=None) -> bool:
         """
@@ -81,69 +38,19 @@ class ProxyController:
             bool: 启动是否成功
         """
         try:
-            # 查找mitmdump可执行文件
-            try:
-                mitmdump_path = self._find_mitmdump()
-            except FileNotFoundError as e:
-                self.logger.error(str(e))
-                return False
-            # 构建mitmproxy命令
-            handler_path = os.path.join(os.path.dirname(__file__), "..", "..", 'scripts', "mitmproxy_handler.py")
-            handler_path = os.path.abspath(handler_path)
-
-            if not os.path.exists(handler_path):
-                self.logger.error(f"mitmproxy处理脚本未找到: {handler_path}")
-                return False
-
-            cmd = [
-                mitmdump_path,  # 使用查找到的完整路径
-                "-s", handler_path,
-                "--listen-port", "8081",
-                # '-q',  # 安静模式
-                # "--ssl-insecure"  # 忽略SSL证书验证
-            ]
-
-            # 启动mitmproxy进程
-            self.mitm_process = subprocess.Popen(
-                cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-                encoding='utf-8',  # 显式指定编码
-                bufsize=1,  # 行缓冲
-                universal_newlines=True
-            )
-
-            # 启动线程来读取输出
-            import threading
-
-            def read_output(pipe, prefix=""):
-                try:
-                    for line in iter(pipe.readline, ''):
-                        self.logger.info(f"[{prefix}] {line.rstrip()}")
-                except Exception as e:
-                    self.logger.error(f"读取mitmproxy输出时出错: {e}")
-                finally:
-                    pipe.close()
-
-            threading.Thread(target=read_output,
-                             args=(self.mitm_process.stdout, "OUT"),
-                             daemon=True).start()
-            threading.Thread(target=read_output,
-                             args=(self.mitm_process.stderr, "ERR"),
-                             daemon=True).start()
-
-            # 给进程一点时间启动
+            if self.is_running:
+                self.logger.info("mitmproxy服务已在运行中")
+                return True
+                
+            # 在新线程中运行mitmproxy
+            self.master_thread = threading.Thread(target=self._run_master, daemon=True)
+            self.master_thread.start()
+            
+            # 等待一段时间确保master实例已创建
             import time
             time.sleep(1)
-
-            # 检查进程是否仍在运行
-            if self.mitm_process.poll() is not None:
-                # 进程已经退出，读取错误信息
-                stdout, stderr = self.mitm_process.communicate()
-                self.logger.error(f"mitmproxy启动失败: {stderr}")
-                return False
-
+            
+            self.is_running = True
             self.logger.info("mitmproxy服务启动成功")
             return True
 
@@ -151,56 +58,61 @@ class ProxyController:
             self.logger.error(f"启动mitmproxy服务失败: {str(e)}")
             return False
 
+    def _run_master(self):
+        """在独立线程中运行mitmproxy主循环"""
+        try:
+            # 在新线程中创建事件循环
+            self.loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(self.loop)
+            
+            # 配置选项
+            opts = Options(
+                listen_port=8081,
+                ssl_insecure=True  # 忽略SSL证书验证
+            )
+            
+            # 创建DumpMaster实例，显式传递事件循环
+            self.master_instance = DumpMaster(opts, loop=self.loop, with_termlog=False, with_dumper=False)
+            
+            # 添加拦截器addon到master
+            self.master_instance.addons.add(interceptor)
+            
+            # 启动master
+            self.logger.info("正在启动mitmproxy...")
+            self.loop.run_until_complete(self.master_instance.run())
+            
+        except Exception as e:
+            self.logger.error(f"运行mitmproxy时出错: {str(e)}")
+        finally:
+            self.is_running = False
+            if self.loop:
+                self.loop.close()
+
     def stop_mitmproxy(self):
         """停止mitmproxy服务"""
-        if self.mitm_process and self.mitm_process.poll() is None:
-            try:
-                # 在Windows上使用taskkill，其他平台使用terminate
-                if platform.system() == "Windows":
-                    subprocess.run(["taskkill", "/F", "/PID", str(self.mitm_process.pid)],
-                                   capture_output=True)
-                else:
-                    self.mitm_process.terminate()
-                    self.mitm_process.wait(timeout=5)
-
+        try:
+            if not self.is_running:
+                self.logger.info("mitmproxy服务未在运行")
+                return
+                
+            if self.master_instance:
+                # 使用DumpMaster自带的shutdown方法
+                self.master_instance.shutdown()
+                
+                # 等待线程结束
+                if self.master_thread and self.master_thread.is_alive():
+                    self.master_thread.join(timeout=5)
+                    
+                self.master_instance = None
+                self.is_running = False
                 self.logger.info("mitmproxy服务已停止")
-            except Exception as e:
-                self.logger.error(f"停止mitmproxy服务时出错: {str(e)}")
-
-        self.mitm_process = None
+                
+        except Exception as e:
+            self.logger.error(f"停止mitmproxy服务时出错: {str(e)}")
 
     def stop_mitmproxy_gracefully(self):
         """平滑退出mitmproxy服务"""
-        if self.mitm_process and self.mitm_process.poll() is None:
-            try:
-                # 发送SIGTERM信号进行优雅关闭
-                import signal
-                self.mitm_process.send_signal(signal.SIGTERM)
-
-                # 等待进程正常退出，最多等待10秒
-                try:
-                    self.mitm_process.wait(timeout=10)
-                    self.logger.info("mitmproxy服务已平滑退出")
-                except subprocess.TimeoutExpired:
-                    # 如果超时则强制终止
-                    self.logger.warning("mitmproxy服务未及时退出，正在强制终止")
-                    self.mitm_process.kill()
-                    self.mitm_process.wait()
-                    self.logger.info("mitmproxy服务已强制终止")
-
-            except Exception as e:
-                self.logger.error(f"平滑退出mitmproxy服务时出错: {str(e)}")
-                # 出现异常时尝试强制终止
-                try:
-                    self.mitm_process.kill()
-                    self.mitm_process.wait()
-                except:
-                    pass
-        else:
-            self.logger.info("mitmproxy服务未运行或已退出")
-
-        # 清理进程引用
-        self.mitm_process = None
+        self.stop_mitmproxy()
 
     def enable_global_proxy(self) -> bool:
         """
@@ -293,6 +205,7 @@ class ProxyController:
         """启用macOS系统代理"""
         try:
             # 设置HTTP代理
+            import subprocess
             subprocess.run([
                 "networksetup", "-setwebproxy", "Wi-Fi", "127.0.0.1", "8081"
             ], check=True, capture_output=True)
@@ -322,6 +235,7 @@ class ProxyController:
         """禁用macOS系统代理"""
         try:
             # 禁用HTTP代理
+            import subprocess
             subprocess.run([
                 "networksetup", "-setwebproxystate", "Wi-Fi", "off"
             ], check=True, capture_output=True)
@@ -340,6 +254,7 @@ class ProxyController:
         """启用Linux系统代理（GNOME环境）"""
         try:
             # 设置HTTP代理
+            import subprocess
             subprocess.run([
                 "gsettings", "set", "org.gnome.system.proxy.http", "host", "'127.0.0.1'"
             ], check=True, capture_output=True)
@@ -373,6 +288,7 @@ class ProxyController:
         """禁用Linux系统代理"""
         try:
             # 禁用代理
+            import subprocess
             subprocess.run([
                 "gsettings", "set", "org.gnome.system.proxy", "mode", "'none'"
             ], check=True, capture_output=True)
