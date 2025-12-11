@@ -202,10 +202,7 @@ class QNDataCollector:
             if offline_store_id == data_dict.get('store_id'):
                 self.log(f'门店id:{offline_store_id}与品牌店铺id相同，跳过')
                 continue
-            # 过滤地址
-            if store.get('gps_addr').find('太原'):
-                self.log(f'门店地址:{store.get("gps_addr")}不符合要求，跳过')
-                continue
+
             # 选择门店
             selected_res = self.select_offline_store(offline_store_id)  # 选择门店
             if selected_res['code'] != 0:
