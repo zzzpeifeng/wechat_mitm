@@ -28,7 +28,7 @@ class LogPanel(QWidget):
         group = QGroupBox("运行日志")
         layout = QVBoxLayout(group)
         layout.setSpacing(10)
-        layout.setContentsMargins(15, 30, 15, 20)
+        layout.setContentsMargins(10, 10, 10, 10)
 
         self.log_text = QTextEdit()
         self.log_text.setReadOnly(True)
@@ -39,8 +39,8 @@ class LogPanel(QWidget):
             QTextEdit {
                 border: 1px solid #dcdfe6;
                 border-radius: 8px;
-                padding: 10px;
-                font-size: 13px;
+                padding: 1px;
+                font-size: 10px;
                 font-family: Consolas, Monaco, 'Courier New', monospace;
                 background-color: #ffffff;
                 color: #606266;
@@ -51,13 +51,13 @@ class LogPanel(QWidget):
         # 底部按钮布局
         button_layout = QHBoxLayout()
         button_layout.setContentsMargins(0, 0, 0, 0)
-        
         self.clear_log_btn = QPushButton("清除日志")
         self.clear_log_btn.setObjectName("clearLogBtn")
-        self.clear_log_btn.setFixedWidth(100)
+        # self.clear_log_btn.setFixedWidth(100)
+        self.clear_log_btn.setFixedSize(930,20)
 
         button_layout.addWidget(self.clear_log_btn)
-        button_layout.addStretch(1)  # 添加弹性空间，使按钮靠左对齐
+        button_layout.addStretch(2)  # 添加弹性空间，使按钮靠左对齐
         
         layout.addLayout(button_layout)
 

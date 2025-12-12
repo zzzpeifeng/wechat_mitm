@@ -33,7 +33,7 @@ class ControlPanel(QWidget):
         group = QGroupBox("数据收集控制")
         layout = QVBoxLayout(group)
         layout.setSpacing(15)
-        layout.setContentsMargins(15, 30, 15, 20)
+        layout.setContentsMargins(10, 10, 10, 10)
 
         # 域名输入区域
         domain_input_layout = QHBoxLayout()
@@ -60,11 +60,11 @@ class ControlPanel(QWidget):
         self.domain_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
         self.domain_table.verticalHeader().setVisible(False)
         self.domain_table.setObjectName("domainTable")
-        self.domain_table.setMinimumHeight(200)
+        self.domain_table.setMinimumHeight(100)
         self.domain_table.setStyleSheet("""
             QTableWidget {
                 border: 1px solid #dcdfe6;
-                border-radius: 4px;
+                border-radius: 8px;
                 gridline-color: #ebeef5;
                 background-color: #ffffff;
             }
@@ -77,7 +77,7 @@ class ControlPanel(QWidget):
             QHeaderView::section {
                 background-color: #f5f7fa;
                 color: #909399;
-                padding: 8px;
+                padding: 5px;
                 font-weight: normal;
                 border: none;
                 border-bottom: 1px solid #dcdfe6;
@@ -91,25 +91,25 @@ class ControlPanel(QWidget):
         """创建服务控制组"""
         group = QGroupBox("服务控制")
         layout = QVBoxLayout(group)
-        layout.setSpacing(10)
-        layout.setContentsMargins(15, 30, 15, 20)
+        layout.setSpacing(5)
+        layout.setContentsMargins(10, 10, 15, 10)
 
         self.mitm_service_btn = QPushButton("启动青鸟监控")
         self.mitm_service_btn.setCheckable(True)
         self.mitm_service_btn.setObjectName("mitmServiceBtn")
-        self.mitm_service_btn.setMinimumHeight(24)
+        self.mitm_service_btn.setFixedSize(150, 100)
         layout.addWidget(self.mitm_service_btn)
 
         self.crawler_btn = QPushButton("启动青鸟爬虫")
         self.crawler_btn.setCheckable(True)
         self.crawler_btn.setObjectName("crawlerBtn")
-        self.crawler_btn.setMinimumHeight(24)
+        self.crawler_btn.setFixedSize(150, 100)
         layout.addWidget(self.crawler_btn)
 
         self.proxy_btn = QPushButton("启用全局代理")
         self.proxy_btn.setCheckable(True)
         self.proxy_btn.setObjectName("proxyBtn")
-        self.proxy_btn.setMinimumHeight(24)
+        self.proxy_btn.setFixedSize(150, 30)
         layout.addWidget(self.proxy_btn)
 
         # 添加弹性空间
