@@ -25,10 +25,10 @@ class MitmProxyMainView(QMainWindow):
         """初始化用户界面布局"""
         self.setWindowTitle("MitmProxy 控制面板")
         
-        # 设置窗口大小
-        self.setGeometry(100, 100, 1000, 700)
+        # 设置窗口大小 - 调整为更合适的默认尺寸
+        self.setGeometry(100, 100, 900, 550)
         # 设置窗口最小大小
-        self.setMinimumSize(800, 600)
+        self.setMinimumSize(800, 450)
         
         # 在 macOS 上启用原生窗口装饰
         if platform.system() == "Darwin":
@@ -43,8 +43,8 @@ class MitmProxyMainView(QMainWindow):
 
         # 主布局
         main_layout = QVBoxLayout(central_widget)
-        main_layout.setSpacing(15)
-        main_layout.setContentsMargins(20, 20, 20, 20)
+        main_layout.setSpacing(12)  # 减少间距
+        main_layout.setContentsMargins(20, 20, 20, 20)  # 减少边距
 
         # 标题
         title_label = self._create_title_label()
@@ -113,10 +113,10 @@ class MitmProxyMainView(QMainWindow):
         }
         
         QGroupBox {
-            font-size: 16px;
-            font-weight: bold;
-            border: 1px solid #dcdfe6;
-            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 600;
+            border: 1px solid #e4e7ed;
+            border-radius: 6px;
             margin-top: 1ex;
             padding-top: 10px;
             padding-bottom: 10px;
@@ -212,24 +212,25 @@ class MitmProxyMainView(QMainWindow):
         """创建标题标签"""
         title_label = QLabel("MitmProxy 控制面板")
         title_font = QFont()
-        title_font.setPointSize(20)
+        title_font.setPointSize(18)  # 减小字体大小
         title_font.setBold(True)
         title_label.setFont(title_font)
         title_label.setAlignment(Qt.AlignCenter)
         title_label.setStyleSheet("""
             color: #303133;
-            margin-bottom: 10px;
+            margin-bottom: 5px;
             padding: 10px;
             background-color: white;
-            border-radius: 4px;
-            border: 1px solid #ebeef5;
+            border-radius: 6px;
+            border: 1px solid #e4e7ed;
+            font-weight: 600;
         """)
         return title_label
 
     def _create_control_area(self) -> QHBoxLayout:
         """创建控制区域布局"""
         control_layout = QHBoxLayout()
-        control_layout.setSpacing(20)
+        control_layout.setSpacing(15)  # 减少间距
 
         # 使用完整的 ControlPanel 替代手工创建的控件
         self.control_panel = ControlPanel()
@@ -242,7 +243,7 @@ class MitmProxyMainView(QMainWindow):
         from core.ui.views.components.status_panel import StatusPanel
 
         status_layout = QHBoxLayout()
-        status_layout.setSpacing(20)
+        status_layout.setSpacing(15)  # 减少间距
 
         # 使用 StatusPanel 组件替代手工创建的状态显示控件
         self.status_panel = StatusPanel()
@@ -255,7 +256,7 @@ class MitmProxyMainView(QMainWindow):
         from core.ui.views.components.log_panel import LogPanel
 
         log_layout = QVBoxLayout()
-        log_layout.setSpacing(10)
+        log_layout.setSpacing(8)  # 减少间距
 
         # 使用 LogPanel 组件替代手工创建的日志显示控件
         self.log_panel = LogPanel()

@@ -16,7 +16,20 @@ def resource_path(relative_path):
 
 
 # 加载.env文件
-load_dotenv(resource_path('.env'))
+# 先尝试从可执行文件同目录加载.env文件，如果不存在则使用默认路径
+if getattr(sys, 'frozen', False):
+    # 打包后的环境
+    env_path = os.path.join(os.path.dirname(sys.executable), '.env')
+else:
+    # 开发环境
+    env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '.env')
+
+# 如果指定路径的.env文件不存在，则尝试当前目录
+if not os.path.exists(env_path):
+    env_path = '.env'
+
+# 加载环境变量
+load_dotenv(env_path, override=True)
 
 
 class DatabaseConfig:
@@ -30,8 +43,8 @@ class DatabaseConfig:
 
 class FEISHUConfig:
     """飞书配置类"""
-    FEISHU_APP_ID = os.getenv('FEISHU_APP_ID', 'xxxxx')
-    FEISHU_APP_SECRET = os.getenv('FEISHU_APP_SECRET', 'xxxx')
+    FEISHU_APP_ID = os.getenv('FEISHU_APP_ID', 'cli_a9bb9e88bf385bc6')
+    FEISHU_APP_SECRET = os.getenv('FEISHU_APP_SECRET', 'yNh8KAzF0HN8X6LASixdugaChfQbPj8n')
     FEISHU_DOMAIN = os.getenv('FEISHU_DOMAIN', 'https://open.feishu.cn')
 
 
