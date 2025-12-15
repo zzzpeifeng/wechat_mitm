@@ -232,6 +232,45 @@ class ControlPanel(QWidget):
         """)
         buttons_container.addWidget(self.crawler_btn)
 
+        # 添加大巴掌爬虫按钮
+        self.dbz_crawler_btn = QPushButton("大巴掌爬虫")
+        self.dbz_crawler_btn.setCheckable(True)
+        self.dbz_crawler_btn.setObjectName("dbzCrawlerBtn")
+        self.dbz_crawler_btn.setFixedSize(140, 24)  # 固定尺寸，高度符合规范
+        self.dbz_crawler_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #e6a23c;
+                border: none;
+                color: white;
+                padding: 4px 12px;
+                font-size: 12px;
+                border-radius: 6px;
+                font-weight: 500;
+                outline: none;
+            }
+            
+            QPushButton:hover {
+                background-color: #ebb563;
+            }
+            
+            QPushButton:pressed {
+                background-color: #cf9236;
+            }
+            
+            QPushButton:checked {
+                background-color: #f56c6c;
+            }
+            
+            QPushButton:checked:hover {
+                background-color: #f78989;
+            }
+            
+            QPushButton:focus {
+                outline: none;
+            }
+        """)
+        buttons_container.addWidget(self.dbz_crawler_btn)
+
         self.proxy_btn = QPushButton("启用全局代理")
         self.proxy_btn.setCheckable(True)
         self.proxy_btn.setObjectName("proxyBtn")

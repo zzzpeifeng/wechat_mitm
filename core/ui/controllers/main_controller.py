@@ -7,6 +7,8 @@ from datetime import datetime
 from PyQt5.QtWidgets import QTableWidgetItem
 
 from core.ui.controllers.data_collector import QNDataCollector, DataCollectionWorker
+from core.ui.controllers.dbz_data_collector import DBZDataCollector
+from core.ui.controllers.dbz_data_collector_worker import DBZDataCollectorWorker
 from core.ui.views.main_window import MitmProxyMainView
 from core.ui.controllers.proxy_controller import ProxyController
 from core.utils.database import get_db_manager
@@ -26,7 +28,9 @@ class MainController(QObject):
         self.view = view
         self.proxy_controller = ProxyController()
         self.data_qn_collector = QNDataCollector()
+        self.data_dbz_collector = DBZDataCollector()  # 添加DBZ数据收集器
         self.qn_data_worker = None
+        self.dbz_data_worker = None  # 添加DBZ数据工作线程
         self.db_manager = get_db_manager()
 
         # 状态管理
@@ -51,6 +55,7 @@ class MainController(QObject):
 
         # 数据收集开始连接
         self.view.control_panel.crawler_btn.clicked.connect(self.on_crawler_toggle)
+        self.view.control_panel.dbz_crawler_btn.clicked.connect(self.on_dbz_crawler_toggle)  # 添加DBZ爬虫连接
 
         # 日志控制连接
         self.view.log_panel.clear_log_btn.clicked.connect(self.on_clear_logs)
@@ -251,7 +256,7 @@ class MainController(QObject):
             self.view.log_message("全局代理已禁用")
 
     def on_crawler_toggle(self):
-        """爬虫开关切换"""
+        """青鸟爬虫开关切换"""
         # 注意：按钮在点击后会自动切换checked状态
         if self.view.control_panel.crawler_btn.isChecked():
             # 爬虫开始
@@ -283,17 +288,62 @@ class MainController(QObject):
             self.view.control_panel.crawler_btn.setStyleSheet("")
             self.view.log_message("青鸟爬虫任务已完成")
 
+    def on_dbz_crawler_toggle(self):
+        """大巴掌爬虫开关切换"""
+        # 注意：按钮在点击后会自动切换checked状态
+        if self.view.control_panel.dbz_crawler_btn.isChecked():
+            # 爬虫开始
+            # 创建并启动DBZ数据收集工作线程
+            self.dbz_data_worker = DBZDataCollectorWorker(self.data_dbz_collector)
+            self.dbz_data_worker.finished.connect(self.on_dbz_data_collection_finished)
+            self.dbz_data_worker.progress.connect(self.view.log_message)
+            self.dbz_data_worker.log_message.connect(self.view.log_message)  # 连接日志信号
+            self.dbz_data_worker.start()
+
+            # 修改按钮状态
+            self.view.control_panel.dbz_crawler_btn.setText("停止大巴掌爬虫")
+            self.view.control_panel.dbz_crawler_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #f56c6c;
+                }
+                QPushButton:hover {
+                    background-color: #f78989;
+                }
+                QPushButton:pressed {
+                    background-color: #dd6161;
+                }
+            """)
+
+            self.view.log_message("开始执行大巴掌爬虫任务...")
+        else:
+            # 停止爬虫（如果需要实现停止功能的话）
+            self.view.control_panel.dbz_crawler_btn.setText("大巴掌爬虫")
+            self.view.control_panel.dbz_crawler_btn.setStyleSheet("")
+            self.view.log_message("大巴掌爬虫任务已完成")
+
     def on_data_collection_finished(self):
-        """数据收集完成回调"""
+        """青鸟数据收集完成回调"""
         self.view.control_panel.crawler_btn.setText("启动青鸟爬虫")
         self.view.control_panel.crawler_btn.setStyleSheet("")
         self.view.control_panel.crawler_btn.setChecked(False)
-        self.view.log_message("数据收集任务已完成")
+        self.view.log_message("青鸟数据收集任务已完成")
 
         # 清理工作线程
         if self.data_collection_worker:
             self.data_collection_worker.deleteLater()
             self.data_collection_worker = None
+
+    def on_dbz_data_collection_finished(self):
+        """大巴掌数据收集完成回调"""
+        self.view.control_panel.dbz_crawler_btn.setText("大巴掌爬虫")
+        self.view.control_panel.dbz_crawler_btn.setStyleSheet("")
+        self.view.control_panel.dbz_crawler_btn.setChecked(False)
+        self.view.log_message("大巴掌数据收集任务已完成")
+
+        # 清理工作线程
+        if self.dbz_data_worker:
+            self.dbz_data_worker.deleteLater()
+            self.dbz_data_worker = None
 
     def on_clear_logs(self):
         """清除日志"""
