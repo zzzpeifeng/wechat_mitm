@@ -26,9 +26,9 @@ class MitmProxyMainView(QMainWindow):
         self.setWindowTitle("MitmProxy 控制面板")
         
         # 设置窗口大小 - 调整为更合适的默认尺寸
-        self.setGeometry(100, 100, 900, 550)
+        self.setGeometry(100, 100, 1200, 750)
         # 设置窗口最小大小
-        self.setMinimumSize(800, 450)
+        self.setMinimumSize(1000, 650)
         
         # 在 macOS 上启用原生窗口装饰
         if platform.system() == "Darwin":
