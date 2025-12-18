@@ -129,28 +129,26 @@ class QNDataCollector:
             # 构造数据行
             rows = []
             timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
-            
+
             # 处理每个线下门店的数据
             for index, store in enumerate(data_dict.get('offline_stores', []), 1):
                 # 生成唯一的ID（使用UUID）
                 unique_id = str(uuid.uuid4())
-                
+
                 # 计算总座位数
                 total_seats = store.get('online_machine_count', 0) + store.get('offline_machine_count', 0)
-                
+
                 row = [
                     unique_id,  # ID（使用UUID保证唯一性）
                     data_dict.get('store_name', ''),  # 店铺
                     store.get('offline_store_name', ''),  # 门店
-                    str(store.get('online_machine_count', 0)),  # 在线坐席数
-                    str(store.get('offline_machine_count', 0)),  # 空闲坐席数
-                    str(total_seats),  # 总座位数
+                    f'{str(store.get('online_machine_count', 0))} / {str(total_seats)}',  # 在线坐席数 / 总座位数
                     timestamp,  # 记录时间
                     "",  # 其他数据（可按需填充）
                     ""  # 备注（可按需填充）
                 ]
                 rows.append(row)
-            
+
             # 如果有数据需要上传
             if rows:
                 # 调用飞书表格客户端追加数据
@@ -165,7 +163,7 @@ class QNDataCollector:
             else:
                 self.log("没有数据需要上传到飞书表格")
                 return True
-                
+
         except Exception as e:
             self.log(f"上传数据到飞书表格时发生异常: {e}")
             return False
@@ -264,7 +262,7 @@ class QNDataCollector:
             time.sleep(2)
         print(data_dict)
         self.db_manager.insert_online_rate(data_dict)
-        
+
         # 上传数据到飞书表格
         self.log("开始上传数据到飞书表格...")
         upload_success = self.upload_to_feishu_sheet(data_dict)
