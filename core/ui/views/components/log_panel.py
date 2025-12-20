@@ -41,7 +41,7 @@ class LogPanel(QWidget):
                 border-radius: 4px;
                 padding: 8px;
                 font-size: 11px;
-                font-family: 'Monaco', 'Consolas', 'Courier New', monospace;
+                font-family: 'Monaco', 'Courier New', monospace;
                 background-color: #fafafa;
                 color: #606266;
             }
