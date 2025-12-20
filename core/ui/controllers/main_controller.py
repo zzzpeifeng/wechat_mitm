@@ -201,13 +201,32 @@ class MainController(QObject):
                 self.view.control_panel.mitm_service_btn.setText("停止青鸟监控")
                 self.view.control_panel.mitm_service_btn.setStyleSheet("""
                     QPushButton {
-                        background-color: #f56c6c;
+                        background-color: #409eff;
+                        border: none;
+                        color: white;
+                        padding: 4px 12px;
+                        font-size: 12px;
+                        border-radius: 6px;
+                        font-weight: 500;
+                        outline: none;
                     }
                     QPushButton:hover {
-                        background-color: #f78989;
+                        background-color: #66b1ff;
                     }
                     QPushButton:pressed {
-                        background-color: #dd6161;
+                        background-color: #3a8ee6;
+                    }
+                    
+                    QPushButton:checked {
+                        background-color: #f56c6c;
+                    }
+                    
+                    QPushButton:checked:hover {
+                        background-color: #f78989;
+                    }
+                    
+                    QPushButton:focus {
+                        outline: none;
                     }
                 """)
                 self.view.status_panel.update_mitm_status(True)
