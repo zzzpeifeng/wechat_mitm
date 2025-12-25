@@ -84,9 +84,26 @@ class ProxyController:
         except Exception as e:
             self.logger.error(f"运行mitmproxy时出错: {str(e)}")
         finally:
+            # 确保清理所有资源
+            try:
+                # 取消所有未完成的任务
+                if self.loop:
+                    pending = asyncio.all_tasks(self.loop)
+                    for task in pending:
+                        task.cancel()
+                    
+                    # 运行一次事件循环以处理取消的任务
+                    if pending:
+                        self.loop.run_until_complete(
+                            asyncio.gather(*pending, return_exceptions=True)
+                        )
+            except Exception as e:
+                self.logger.warning(f"清理任务时出错: {str(e)}")
+            
             self.is_running = False
             if self.loop:
                 self.loop.close()
+                self.loop = None
 
     def stop_mitmproxy(self):
         """停止mitmproxy服务"""
@@ -99,11 +116,40 @@ class ProxyController:
                 # 使用DumpMaster自带的shutdown方法
                 self.master_instance.shutdown()
                 
+                # 等待一小段时间让正常的关闭流程完成
+                import time
+                time.sleep(0.5)
+                
+                # 如果事件循环仍在运行，则强制关闭
+                if self.loop and self.loop.is_running():
+                    # 取消所有待处理的任务
+                    try:
+                        pending_tasks = [task for task in asyncio.all_tasks(self.loop) if not task.done()]
+                        for task in pending_tasks:
+                            task.cancel()
+                            
+                        # 给一点时间让任务取消完成
+                        if pending_tasks:
+                            self.loop.call_soon_threadsafe(
+                                lambda: asyncio.ensure_future(
+                                    asyncio.gather(*pending_tasks, return_exceptions=True)
+                                )
+                            )
+                    except Exception as e:
+                        self.logger.warning(f"取消待处理任务时出错: {str(e)}")
+                    
+                    # 安全地停止事件循环
+                    try:
+                        self.loop.call_soon_threadsafe(self.loop.stop)
+                    except Exception as e:
+                        self.logger.warning(f"停止事件循环时出错: {str(e)}")
+                
                 # 等待线程结束
                 if self.master_thread and self.master_thread.is_alive():
                     self.master_thread.join(timeout=5)
                     
                 self.master_instance = None
+                self.loop = None
                 self.is_running = False
                 self.logger.info("mitmproxy服务已停止")
                 
