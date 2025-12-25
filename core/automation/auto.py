@@ -27,6 +27,8 @@ class AndroidAutomation:
         检查并安装ATX应用
         """
         try:
+            print("正在检查ATX应用是否已安装...")
+            
             # 检查ATX应用是否已安装
             result = subprocess.run(
                 ["adb", "shell", "pm", "list", "packages", "com.github.uiautomator"], 
@@ -36,18 +38,34 @@ class AndroidAutomation:
             if "com.github.uiautomator" not in result.stdout:
                 print("ATX应用未安装，正在自动安装...")
                 
-                # 初始化uiautomator2，这将自动安装ATX应用
-                import tempfile
-                import urllib.request
-                import zipfile
+                # 直接使用uiautomator2的init命令安装ATX应用
+                init_cmd = ["python", "-m", "uiautomator2", "init"]
+                if self.device_id:
+                    init_cmd.extend(["--serial", self.device_id])
                 
-                # 使用uiautomator2的初始化功能
-                subprocess.run(["python", "-m", "uiautomator2", "init", "--serial", self.d.serial], 
-                             capture_output=True)
+                result = subprocess.run(init_cmd, capture_output=True, text=True)
                 
-                print("ATX应用安装完成")
+                if result.returncode == 0:
+                    print("ATX应用安装完成")
+                else:
+                    print(f"ATX应用安装可能失败: {result.stderr}")
+                    # 尝试不带设备ID的初始化
+                    subprocess.run(["python", "-m", "uiautomator2", "init"], capture_output=True)
             else:
                 print("ATX应用已安装")
+                
+            # 检查ATX服务应用是否也已安装
+            result2 = subprocess.run(
+                ["adb", "shell", "pm", "list", "packages", "com.github.uiautomator.test"],
+                capture_output=True, text=True
+            )
+            
+            if "com.github.uiautomator.test" not in result2.stdout:
+                print("ATX服务应用未安装，正在自动安装...")
+                # 通常在初始化ATX时会同时安装服务应用，这里再次确认
+                subprocess.run(["python", "-m", "uiautomator2", "init"], capture_output=True)
+            else:
+                print("ATX服务应用已安装")
                 
             # 确保ATX服务已启动
             self._ensure_atx_service()
@@ -56,21 +74,41 @@ class AndroidAutomation:
             print(f"检查或安装ATX应用时出错: {e}")
             # 尝试直接初始化
             try:
-                subprocess.run(["python", "-m", "uiautomator2", "init"], check=True)
+                subprocess.run(["python", "-m", "uiautomator2", "init"], capture_output=True, text=True)
                 print("ATX应用初始化完成")
             except Exception as e2:
                 print(f"ATX应用初始化失败: {e2}")
+                print("请手动运行 'python -m uiautomator2 init' 进行初始化")
     
     def _ensure_atx_service(self):
         """
         确保ATX服务正在运行
         """
         try:
-            # 启动ATX服务
-            self.d.service("com.github.uiautomator").start()
+            # 尝试启动ATX服务 - 注意：在较新版本的uiautomator2中，API可能有所不同
+            if hasattr(self.d, 'service'):
+                self.d.service("com.github.uiautomator").start()
+            else:
+                # 对于较新版本，可能需要使用其他方式启动服务
+                subprocess.run([
+                    "adb", "shell", "am", "start", "-n", 
+                    "com.github.uiautomator/.MainActivity"
+                ], capture_output=True)
+            
             time.sleep(2)  # 等待服务启动
+            print("ATX服务已启动")
         except Exception as e:
             print(f"启动ATX服务时出错: {e}")
+            # 尝试通过ADB启动服务
+            try:
+                subprocess.run([
+                    "adb", "shell", "am", "start", "-n", 
+                    "com.github.uiautomator/.MainActivity"
+                ], capture_output=True)
+                time.sleep(3)
+                print("通过ADB启动ATX应用")
+            except Exception as e2:
+                print(f"通过ADB启动ATX应用也失败: {e2}")
     
     def connect(self):
         """
