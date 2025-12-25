@@ -53,28 +53,20 @@ class AndroidAutomation:
                     subprocess.run(["python", "-m", "uiautomator2", "init"], capture_output=True)
             else:
                 print("ATX应用已安装")
-                
-            # 检查ATX服务应用是否也已安装
-            result2 = subprocess.run(
-                ["adb", "shell", "pm", "list", "packages", "com.github.uiautomator.test"],
-                capture_output=True, text=True
-            )
-            
-            if "com.github.uiautomator.test" not in result2.stdout:
-                print("ATX服务应用未安装，正在自动安装...")
-                # 通常在初始化ATX时会同时安装服务应用，这里再次确认
-                subprocess.run(["python", "-m", "uiautomator2", "init"], capture_output=True)
-            else:
-                print("ATX服务应用已安装")
+
+
                 
             # 确保ATX服务已启动
             self._ensure_atx_service()
-                
+
         except Exception as e:
             print(f"检查或安装ATX应用时出错: {e}")
             # 尝试直接初始化
             try:
-                subprocess.run(["python", "-m", "uiautomator2", "init"], capture_output=True, text=True)
+                init_cmd = ["python", "-m", "uiautomator2", "init"]
+                if self.device_id:
+                    init_cmd.extend(["--serial", self.device_id])
+                subprocess.run(init_cmd, capture_output=True, text=True)
                 print("ATX应用初始化完成")
             except Exception as e2:
                 print(f"ATX应用初始化失败: {e2}")
@@ -97,6 +89,7 @@ class AndroidAutomation:
             
             time.sleep(2)  # 等待服务启动
             print("ATX服务已启动")
+            self.go_home()
         except Exception as e:
             print(f"启动ATX服务时出错: {e}")
             # 尝试通过ADB启动服务
@@ -196,11 +189,43 @@ class AndroidAutomation:
                 raise Exception("设备未连接")
             
             print(f"正在打开应用: {package_name}")
+            
+            # 首先检查应用是否安装
+            if not self.d.app_info(package_name):
+                print(f"应用未安装: {package_name}")
+                # 尝试列出设备上的所有应用，看是否有类似包名的应用
+                apps = self.d.app_list()
+                similar_apps = [app for app in apps if package_name.lower() in app.lower()]
+                if similar_apps:
+                    print(f"找到相似包名的应用: {similar_apps}")
+                else:
+                    print(f"在设备上未找到应用: {package_name}")
+                return False
+            
+            # 尝试启动应用
             self.d.app_start(package_name)
-            time.sleep(2)  # 等待应用启动
+            time.sleep(3)  # 等待应用启动，增加等待时间
+            
+            # 检查应用是否成功启动
+            current_app = self.d.app_current()
+            if current_app.get('packageName') == package_name:
+                print(f"成功打开应用: {package_name}")
+                return True
+            else:
+                print(f"可能未成功打开应用: {package_name}, 当前应用是: {current_app.get('packageName')}")
+                return False
             
         except Exception as e:
             print(f"打开应用时出错: {e}")
+            # 检查应用是否存在于设备上
+            try:
+                apps = self.d.app_list()
+                if package_name not in apps:
+                    print(f"应用 {package_name} 未安装在设备上")
+                else:
+                    print(f"应用 {package_name} 已安装，但启动失败")
+            except:
+                pass  # 如果无法获取应用列表，则忽略此步骤
             raise
     
     def kill_app(self, package_name: str):
@@ -215,13 +240,88 @@ class AndroidAutomation:
                 raise Exception("设备未连接")
             
             print(f"正在杀死应用: {package_name}")
-            self.d.app_stop(package_name)
-            time.sleep(1)  # 等待应用停止
+            
+            # 检查应用是否正在运行
+            current_app = self.d.app_current()
+            if current_app.get('packageName') == package_name:
+                self.d.app_stop(package_name)
+                time.sleep(1)  # 等待应用停止
+                print(f"成功停止应用: {package_name}")
+                return True
+            else:
+                # 即使应用不是前台应用，也尝试停止它
+                self.d.app_stop(package_name)
+                time.sleep(1)
+                print(f"已发送停止应用命令: {package_name}")
+                return True
             
         except Exception as e:
             print(f"杀死应用时出错: {e}")
             raise
-    
+
+    def is_app_installed(self, package_name: str) -> bool:
+        """
+        检查应用是否已安装
+        
+        Args:
+            package_name: 应用包名
+            
+        Returns:
+            bool: 应用是否已安装
+        """
+        try:
+            if not self.d:
+                raise Exception("设备未连接")
+            
+            return self.d.app_info(package_name) is not None
+        except Exception as e:
+            print(f"检查应用安装状态时出错: {e}")
+            return False
+
+    def is_app_running(self, package_name: str) -> bool:
+        """
+        检查应用是否正在运行
+        
+        Args:
+            package_name: 应用包名
+            
+        Returns:
+            bool: 应用是否正在运行
+        """
+        try:
+            if not self.d:
+                raise Exception("设备未连接")
+            
+            current_app = self.d.app_current()
+            return current_app.get('packageName') == package_name
+        except Exception as e:
+            print(f"检查应用运行状态时出错: {e}")
+            return False
+
+    def open_app_by_name(self, app_name: str) -> bool:
+        """
+        根据应用名称打开应用
+        
+        Args:
+            app_name: 应用名称（支持模糊匹配）
+            
+        Returns:
+            bool: 是否成功打开应用
+        """
+        try:
+            if not self.d:
+                raise Exception("设备未连接")
+            
+            print(f"正在查找应用: {app_name}")
+            
+            self.d(text=app_name).click()
+            # 判断是否已经打开app
+            return True
+                
+        except Exception as e:
+            print(f"根据应用名称打开应用时出错: {e}")
+            return False
+
     def click_element(self, selector: str, by: str = "text", timeout: int = 10):
         """
         点击指定元素
@@ -468,7 +568,22 @@ class AndroidAutomation:
         except Exception as e:
             print(f"等待设备空闲时出错: {e}")
             raise
-    
+
+    def go_home(self):
+        """
+        返回桌面
+        """
+        try:
+            if not self.d:
+                raise Exception("设备未连接")
+            
+            print("返回桌面")
+            self.d.press("home")
+            
+        except Exception as e:
+            print(f"返回桌面时出错: {e}")
+            raise
+
     def close(self):
         """
         关闭连接并清理资源
@@ -508,8 +623,27 @@ def main():
         current_app = automation.get_current_app()
         print(f"当前应用: {current_app}")
         
-        # 示例：打开微信应用（如果设备上安装了的话）
-        # automation.open_app("com.tencent.mm")
+        # 检查微信是否安装
+        wechat_package = "com.tencent.mm"
+        if automation.is_app_installed(wechat_package):
+            print("微信已安装，尝试打开...")
+            success = automation.open_app(wechat_package)
+            if success:
+                print("微信打开成功")
+            else:
+                print("微信打开失败")
+        else:
+            print("微信未安装在设备上")
+            # 尝试查找可能的微信包名
+            apps = automation.get_app_list()
+            wechat_apps = [app for app in apps if 'wechat' in app.lower() or 'weixin' in app.lower() or 'mm' in app.lower()]
+            if wechat_apps:
+                print(f"找到可能的微信相关应用: {wechat_apps}")
+            else:
+                print("未找到任何可能的微信应用")
+        
+        # 示例：使用应用名称打开应用
+        automation.open_app_by_name("微信")
         
         # 示例：杀死微信应用
         # automation.kill_app("com.tencent.mm")
