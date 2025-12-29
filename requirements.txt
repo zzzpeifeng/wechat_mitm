@@ -58,4 +58,6 @@ wsproto==1.2.0
 zstandard==0.25.0
 uiautomator2==2.16.22
 playwright==1.48.0
+opencv-python==4.10.0.84
+numpy==1.26.4
 

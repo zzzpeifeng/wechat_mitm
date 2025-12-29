@@ -2,8 +2,9 @@ import uiautomator2 as u2
 from typing import Optional, List, Dict, Any
 import time
 import subprocess
-import logging
 import os
+import cv2
+import numpy as np
 
 
 class AndroidAutomation:
@@ -58,6 +59,7 @@ class AndroidAutomation:
                 
             # 确保ATX服务已启动
             self._ensure_atx_service()
+            self.go_home()
 
         except Exception as e:
             print(f"检查或安装ATX应用时出错: {e}")
@@ -259,6 +261,40 @@ class AndroidAutomation:
             print(f"杀死应用时出错: {e}")
             raise
 
+    def kill_all_apps(self) -> bool:
+        """
+        杀死所有已安装的应用
+        
+        Returns:
+            bool: 是否成功执行操作
+        """
+        try:
+            if not self.d:
+                raise Exception("设备未连接")
+            
+            print("正在获取应用列表...")
+            app_list = self.d.app_list()
+            
+            if not app_list:
+                print("未找到任何应用")
+                return True
+            
+            print(f"正在杀死所有 {len(app_list)} 个应用...")
+            for package_name in app_list:
+                try:
+                    self.d.app_stop(package_name)
+                    time.sleep(0.1)  # 短暂延迟，避免操作过快
+                except Exception as e:
+                    print(f"停止应用 {package_name} 时出错: {e}")
+                    continue  # 继续处理其他应用
+            
+            print(f"已尝试杀死所有 {len(app_list)} 个应用")
+            return True
+            
+        except Exception as e:
+            print(f"杀死所有应用时出错: {e}")
+            return False
+
     def is_app_installed(self, package_name: str) -> bool:
         """
         检查应用是否已安装
@@ -328,7 +364,7 @@ class AndroidAutomation:
         
         Args:
             selector: 元素选择器值
-            by: 选择器类型，可选值: "text", "resourceId", "className", "description"
+            by: 选择器类型，可选值: "text", "resourceId", "className", "description", "xpath", "textContains", "textStartsWith", "resourceIdMatches", "image"
             timeout: 等待元素出现的超时时间（秒）
         """
         try:
@@ -354,15 +390,12 @@ class AndroidAutomation:
                 element = self.d(textStartsWith=selector)
             elif by == "resourceIdMatches":
                 element = self.d(resourceIdMatches=selector)
+            elif by == "image":
+                # 使用图片进行匹配和点击
+                return self.click_by_image(selector)
             else:
                 raise ValueError(f"不支持的选择器类型: {by}")
-            
-            if element.exists(timeout=timeout):
-                element.click()
-                print(f"成功点击元素: {selector}")
-            else:
-                print(f"未找到元素: {selector} (超时 {timeout} 秒)")
-                
+            element.click()
         except Exception as e:
             print(f"点击元素时出错: {e}")
             raise
@@ -393,7 +426,116 @@ class AndroidAutomation:
         except Exception as e:
             print(f"根据属性点击元素时出错: {e}")
             raise
-    
+
+    def element_exists(self, selector: str, by: str = "text") -> bool:
+        """
+        判断指定元素是否存在
+        
+        Args:
+            selector: 元素选择器值
+            by: 选择器类型，可选值: "text", "resourceId", "className", "description", "xpath", "textContains", "textStartsWith", "resourceIdMatches", "image"
+            
+        Returns:
+            bool: 元素是否存在
+        """
+        try:
+            if not self.d:
+                raise Exception("设备未连接")
+            
+            print(f"检查元素是否存在: {selector} (通过{by}定位)")
+            
+            # 根据选择器类型定位元素
+            if by == "text":
+                element = self.d(text=selector)
+            elif by == "resourceId":
+                element = self.d(resourceId=selector)
+            elif by == "className":
+                element = self.d(className=selector)
+            elif by == "description":
+                element = self.d(description=selector)
+            elif by == "xpath":
+                element = self.d.xpath(selector)
+            elif by == "textContains":
+                element = self.d(textContains=selector)
+            elif by == "textStartsWith":
+                element = self.d(textStartsWith=selector)
+            elif by == "resourceIdMatches":
+                element = self.d(resourceIdMatches=selector)
+            elif by == "image":
+                # 使用图片进行匹配
+                return self.find_image(selector, threshold=0.8) != []
+            else:
+                raise ValueError(f"不支持的选择器类型: {by}")
+            
+            exists = element.exists
+            print(f"元素 '{selector}' 存在状态: {exists}")
+            return exists
+            
+        except Exception as e:
+            print(f"判断元素存在时出错: {e}")
+            return False
+
+    def adb_input_text(self, text: str) -> bool:
+        """
+        使用ADB在当前焦点输入文本
+        
+        Args:
+            text: 要输入的文本内容
+            
+        Returns:
+            bool: 是否输入成功
+        """
+        try:
+            if not self.device_id:
+                cmd = ["adb", "shell", "input", "text", text]
+            else:
+                cmd = ["adb", "-s", self.device_id, "shell", "input", "text", text]
+            
+            result = subprocess.run(cmd, capture_output=True, text=True)
+            
+            if result.returncode == 0:
+                print(f"使用ADB成功输入文本: {text}")
+                return True
+            else:
+                print(f"使用ADB输入文本失败: {result.stderr}")
+                return False
+                
+        except Exception as e:
+            print(f"使用ADB输入文本时出错: {e}")
+            return False
+
+    def adb_send_keys(self, text: str) -> bool:
+        """
+        使用ADB发送按键，处理特殊字符
+        
+        Args:
+            text: 要发送的文本内容
+            
+        Returns:
+            bool: 是否发送成功
+        """
+        try:
+            # 将空格转换为 %s，将其他特殊字符转义
+            escaped_text = text.replace(' ', '%s')
+            
+            if not self.device_id:
+                cmd = ["adb", "shell", "input", "text", escaped_text]
+            else:
+                cmd = ["adb", "-s", self.device_id, "shell", "input", "text", escaped_text]
+            
+            result = subprocess.run(cmd, capture_output=True, text=True)
+            
+            if result.returncode == 0:
+                print(f"使用ADB成功发送按键: {text}")
+                return True
+            else:
+                print(f"使用ADB发送按键失败: {result.stderr}")
+                return False
+                
+        except Exception as e:
+            print(f"使用ADB发送按键时出错: {e}")
+            return False
+
     def click_coordinates(self, x: int, y: int):
         """
         点击指定坐标
@@ -413,15 +555,14 @@ class AndroidAutomation:
             print(f"点击坐标时出错: {e}")
             raise
     
-    def input_text(self, selector: str, text: str, by: str = "text", timeout: int = 10):
+    def input_text(self, selector: str, text: str, by: str = "text"):
         """
         在指定元素中输入文本
         
         Args:
             selector: 元素选择器值
             text: 要输入的文本
-            by: 选择器类型，可选值: "text", "resourceId", "className", "description"
-            timeout: 等待元素出现的超时时间（秒）
+            by: 选择器类型，可选值: "text", "resourceId", "className", "description", "xpath"
         """
         try:
             if not self.d:
@@ -443,11 +584,29 @@ class AndroidAutomation:
             else:
                 raise ValueError(f"不支持的选择器类型: {by}")
             
-            if element.exists(timeout=timeout):
-                element.set_text(text)
-                print(f"成功在元素 {selector} 中输入文本")
+            if element.exists:
+                try:
+                    # 尝试使用uiautomator2的set_text方法
+                    element.set_text(text)
+                    print(f"成功在元素 {selector} 中输入文本")
+                except Exception as input_error:
+                    # 检查是否是输入法相关的错误
+                    if "AdbKeyboard" in str(input_error) or "IME" in str(input_error):
+                        print(f"检测到输入法错误: {input_error}")
+                        print("尝试使用ADB命令输入文本...")
+                        
+                        # 如果是输入法错误，使用ADB方法输入文本
+                        success = self.adb_input_text(text)
+                        if success:
+                            print(f"使用ADB成功输入文本: {text}")
+                        else:
+                            print(f"使用ADB输入文本也失败了")
+                            raise input_error
+                    else:
+                        # 如果不是输入法错误，直接抛出异常
+                        raise input_error
             else:
-                print(f"未找到元素: {selector} (超时 {timeout} 秒)")
+                print(f"未找到元素: {selector}")
                 
         except Exception as e:
             print(f"输入文本时出错: {e}")
@@ -507,6 +666,151 @@ class AndroidAutomation:
             print(f"获取当前应用信息时出错: {e}")
             return {}
     
+    def click_by_image(self, template_path: str, threshold: float = 0.8) -> bool:
+        """
+        根据图片模板在屏幕上查找并点击匹配的元素
+        
+        Args:
+            template_path: 模板图片路径
+            threshold: 匹配阈值，范围0-1，值越高要求匹配度越高
+            
+        Returns:
+            bool: 是否找到并点击成功
+        """
+        try:
+            if not self.d:
+                raise Exception("设备未连接")
+            
+            print(f"正在根据图片模板查找并点击: {template_path}")
+            
+            # 获取当前屏幕截图
+            screen_img = self.d.screenshot()
+            
+            # 将截图保存到临时文件以供OpenCV读取
+            temp_screenshot_path = "temp_screenshot.png"
+            self.d.screenshot(temp_screenshot_path)
+            
+            # 读取屏幕截图和模板图片
+            screen = cv2.imread(temp_screenshot_path)
+            template = cv2.imread(template_path)
+            
+            if screen is None or template is None:
+                print("无法读取屏幕截图或模板图片")
+                return False
+            
+            # 执行模板匹配
+            result = cv2.matchTemplate(screen, template, cv2.TM_CCOEFF_NORMED)
+            
+            # 获取匹配结果中的最大值和位置
+            min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(result)
+            
+            if max_val >= threshold:
+                # 计算匹配区域的中心坐标
+                h, w = template.shape[:2]
+                center_x = int(max_loc[0] + w // 2)
+                center_y = int(max_loc[1] + h // 2)
+                
+                # 点击匹配区域的中心
+                self.d.click(center_x, center_y)
+                print(f"成功匹配并点击图片，相似度: {max_val:.3f}, 坐标: ({center_x}, {center_y})")
+                
+                # 删除临时文件
+                if os.path.exists(temp_screenshot_path):
+                    os.remove(temp_screenshot_path)
+                
+                return True
+            else:
+                print(f"未找到匹配的图片，最高相似度: {max_val:.3f}，阈值: {threshold}")
+                
+                # 删除临时文件
+                if os.path.exists(temp_screenshot_path):
+                    os.remove(temp_screenshot_path)
+                
+                return False
+                
+        except Exception as e:
+            print(f"根据图片点击时出错: {e}")
+            # 确保临时文件被清理
+            temp_screenshot_path = "temp_screenshot.png"
+            if os.path.exists(temp_screenshot_path):
+                os.remove(temp_screenshot_path)
+            raise
+
+    def find_image(self, template_path: str, threshold: float = 0.8, multiple: bool = False) -> List[Dict[str, Any]]:
+        """
+        根据图片模板在屏幕上查找匹配的元素位置
+        
+        Args:
+            template_path: 模板图片路径
+            threshold: 匹配阈值，范围0-1，值越高要求匹配度越高
+            multiple: 是否查找多个匹配项
+            
+        Returns:
+            List[Dict]: 匹配结果列表，每个元素包含坐标和匹配度
+        """
+        try:
+            if not self.d:
+                raise Exception("设备未连接")
+            
+            print(f"正在根据图片模板查找: {template_path}")
+            
+            # 获取当前屏幕截图
+            temp_screenshot_path = "temp_screenshot.png"
+            self.d.screenshot(temp_screenshot_path)
+            
+            # 读取屏幕截图和模板图片
+            screen = cv2.imread(temp_screenshot_path)
+            template = cv2.imread(template_path)
+            
+            if screen is None or template is None:
+                print("无法读取屏幕截图或模板图片")
+                return []
+            
+            # 执行模板匹配
+            result = cv2.matchTemplate(screen, template, cv2.TM_CCOEFF_NORMED)
+            
+            # 获取匹配结果中满足阈值的位置
+            locations = np.where(result >= threshold)
+            
+            matches = []
+            h, w = template.shape[:2]
+            
+            if len(locations[0]) > 0:
+                # 将匹配位置转换为坐标
+                for pt in zip(*locations[::-1]):  # locations[::-1] 将y,x转换为x,y
+                    center_x = int(pt[0] + w // 2)
+                    center_y = int(pt[1] + h // 2)
+                    match_val = float(result[pt[1], pt[0]])  # 获取该位置的匹配度
+                    matches.append({
+                        "x": center_x,
+                        "y": center_y,
+                        "match_value": match_val,
+                        "top_left": (int(pt[0]), int(pt[1]))
+                    })
+                
+                # 如果不需要多个匹配，只返回最佳匹配
+                if not multiple and matches:
+                    best_match = max(matches, key=lambda x: x["match_value"])
+                    matches = [best_match]
+                
+                print(f"找到 {len(matches)} 个匹配项")
+            else:
+                print(f"未找到匹配的图片，阈值: {threshold}")
+            
+            # 删除临时文件
+            if os.path.exists(temp_screenshot_path):
+                os.remove(temp_screenshot_path)
+            
+            return matches
+                
+        except Exception as e:
+            print(f"查找图片时出错: {e}")
+            # 确保临时文件被清理
+            temp_screenshot_path = "temp_screenshot.png"
+            if os.path.exists(temp_screenshot_path):
+                os.remove(temp_screenshot_path)
+            return []
+
     def screenshot(self, filename: str = None) -> str:
         """
         截取屏幕截图
@@ -596,17 +900,17 @@ class AndroidAutomation:
 # 使用示例
 def main():
     try:
-        # 检查是否有连接的设备
-        result = subprocess.run(["adb", "devices"], capture_output=True, text=True)
-        lines = result.stdout.strip().split('\n')[1:]  # 跳过标题行
-        connected_devices = [line.split("\t")[0] for line in lines if line.strip() and "\t" in line]
-        
-        if not connected_devices:
-            print("未检测到连接的安卓设备。请连接设备并确保开发者选项已启用。")
-            print("您也可以使用安卓模拟器（如Android Studio模拟器、BlueStacks等）")
-            return
-        
-        print(f"检测到设备: {connected_devices}")
+        # # 检查是否有连接的设备
+        # result = subprocess.run(["adb", "devices"], capture_output=True, text=True)
+        # lines = result.stdout.strip().split('\n')[1:]  # 跳过标题行
+        # connected_devices = [line.split("\t")[0] for line in lines if line.strip() and "\t" in line]
+        #
+        # if not connected_devices:
+        #     print("未检测到连接的安卓设备。请连接设备并确保开发者选项已启用。")
+        #     print("您也可以使用安卓模拟器（如Android Studio模拟器、BlueStacks等）")
+        #     return
+        #
+        # print(f"检测到设备: {connected_devices}")
         
         # 连接到设备（如果连接多个设备，可以指定设备ID）
         automation = AndroidAutomation()
@@ -622,29 +926,19 @@ def main():
         # 获取当前应用
         current_app = automation.get_current_app()
         print(f"当前应用: {current_app}")
-        
-        # 检查微信是否安装
-        wechat_package = "com.tencent.mm"
-        if automation.is_app_installed(wechat_package):
-            print("微信已安装，尝试打开...")
-            success = automation.open_app(wechat_package)
-            if success:
-                print("微信打开成功")
-            else:
-                print("微信打开失败")
-        else:
-            print("微信未安装在设备上")
-            # 尝试查找可能的微信包名
-            apps = automation.get_app_list()
-            wechat_apps = [app for app in apps if 'wechat' in app.lower() or 'weixin' in app.lower() or 'mm' in app.lower()]
-            if wechat_apps:
-                print(f"找到可能的微信相关应用: {wechat_apps}")
-            else:
-                print("未找到任何可能的微信应用")
+
+        automation.go_home()
+
         
         # 示例：使用应用名称打开应用
         automation.open_app_by_name("微信")
+
+        print(automation.get_current_app())
         
+        # # 点击指定的XPath元素
+        xpath_selector = "//*[@resource-id=\"com.tencent.mm:id/jha\"]/android.widget.ImageView[1]"
+        automation.click_element(xpath_selector, by="xpath")
+        # automation.d.xpath('//*[@resource-id="com.tencent.mm:id/jha"]').click()
         # 示例：杀死微信应用
         # automation.kill_app("com.tencent.mm")
         
@@ -665,6 +959,16 @@ def main():
         
         # 示例：截图
         # automation.screenshot("test_screenshot.png")
+        
+        # 示例：根据图片点击（需要提供模板图片路径）
+        # success = automation.click_by_image("path/to/your/template.png", threshold=0.8)
+        # if success:
+        #     print("图片点击成功")
+        # else:
+        #     print("未找到匹配的图片")
+        
+        # 示例：使用click_element方法通过图片定位
+        # automation.click_element("path/to/your/template.png", by="image")
         
     except Exception as e:
         print(f"执行自动化操作时出错: {e}")
