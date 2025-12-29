@@ -261,10 +261,13 @@ class AndroidAutomation:
             print(f"杀死应用时出错: {e}")
             raise
 
-    def kill_all_apps(self) -> bool:
+    def force_kill_app(self, package_name: str) -> bool:
         """
-        杀死所有已安装的应用
+        强制杀死指定的应用（使用ADB命令强制停止）
         
+        Args:
+            package_name: 应用包名
+            
         Returns:
             bool: 是否成功执行操作
         """
@@ -272,28 +275,27 @@ class AndroidAutomation:
             if not self.d:
                 raise Exception("设备未连接")
             
-            print("正在获取应用列表...")
-            app_list = self.d.app_list()
+            print(f"正在强制杀死应用: {package_name}")
             
-            if not app_list:
-                print("未找到任何应用")
+            # 使用ADB命令强制停止应用
+            if self.device_id:
+                cmd = ["adb", "-s", self.device_id, "shell", "am", "force-stop", package_name]
+            else:
+                cmd = ["adb", "shell", "am", "force-stop", package_name]
+            
+            result = subprocess.run(cmd, capture_output=True, text=True)
+            
+            if result.returncode == 0:
+                print(f"成功强制停止应用: {package_name}")
                 return True
-            
-            print(f"正在杀死所有 {len(app_list)} 个应用...")
-            for package_name in app_list:
-                try:
-                    self.d.app_stop(package_name)
-                    time.sleep(0.1)  # 短暂延迟，避免操作过快
-                except Exception as e:
-                    print(f"停止应用 {package_name} 时出错: {e}")
-                    continue  # 继续处理其他应用
-            
-            print(f"已尝试杀死所有 {len(app_list)} 个应用")
-            return True
-            
+            else:
+                print(f"强制停止应用失败: {result.stderr}")
+                return False
+                
         except Exception as e:
-            print(f"杀死所有应用时出错: {e}")
+            print(f"强制杀死应用时出错: {e}")
             return False
+
 
     def is_app_installed(self, package_name: str) -> bool:
         """
