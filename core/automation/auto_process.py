@@ -44,9 +44,9 @@ class QingNiaoAutoProcess(object):
 
 
 class ChaLiXiongProcess(QingNiaoAutoProcess):
-    '''
+    """
         查理熊
-    '''
+    """
 
     def click_clx_text_btn(self):
         self.automator.click_element('查理熊电竞馆', by='text')
@@ -69,9 +69,9 @@ class ChaLiXiongProcess(QingNiaoAutoProcess):
 
 
 class XingHaiProcess(QingNiaoAutoProcess):
-    '''
+    """
         星海电竞馆
-    '''
+    """
 
     def click_xh_text_btn(self):
         self.automator.click_element('星海电竞馆', by='text')
@@ -89,9 +89,9 @@ class XingHaiProcess(QingNiaoAutoProcess):
 
 
 class LeYouProcess(QingNiaoAutoProcess):
-    '''
+    """
         乐游电堂
-    '''
+    """
 
     def click_leyou_text_btn(self):
         self.automator.click_element('乐游电堂', by='text')
@@ -113,9 +113,9 @@ class LeYouProcess(QingNiaoAutoProcess):
 
 
 class QingniaoUnitProcess(QingNiaoAutoProcess):
-    '''
+    """
         青鸟电竞联盟
-    '''
+    """
 
     def click_qingniao_text_btn(self):
         self.automator.click_element('青鸟电竞联盟', by='text')
