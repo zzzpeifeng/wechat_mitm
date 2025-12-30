@@ -136,19 +136,42 @@ class QingniaoUnitProcess(QingNiaoAutoProcess):
         self.click_one_short_reserve_btn()
 
 
+class DianfengVSProcess(QingNiaoAutoProcess):
+    """
+        巅峰VS电竞
+    """
+
+    def click_dianfeng_item(self):
+        self.automator.click_element('巅峰VS电竞', by='text')
+
+    def click_nearby_offstore_enter_btn(self):
+        self.automator.click_element('附近门店', by='text')
+
+    def main_process(self):
+        self.open_wechat()
+        if not self.search_bar_exists():
+            self.enter_search_page()
+        self.input_search_content('dianfeng')
+        self.click_dianfeng_item()
+        self.click_nearby_offstore_enter_btn()
+
+
 if __name__ == '__main__':
-    clx = ChaLiXiongProcess()
-    clx.main_process()
+    # clx = ChaLiXiongProcess()
+    # clx.main_process()
+    #
+    # time.sleep(5)
+    # xh = XingHaiProcess()
+    # xh.main_process()
+    #
+    # time.sleep(5)
+    # ly = LeYouProcess()
+    # ly.main_process()
+    #
+    # time.sleep(5)
+    # qn = QingniaoUnitProcess()
+    # qn.main_process()
+    # time.sleep(5)
 
-    time.sleep(5)
-    xh = XingHaiProcess()
-    xh.main_process()
-
-    time.sleep(5)
-    ly = LeYouProcess()
-    ly.main_process()
-
-    time.sleep(5)
-    qn = QingniaoUnitProcess()
-    qn.main_process()
-    time.sleep(5)
+    df = DianfengVSProcess()
+    df.main_process()
