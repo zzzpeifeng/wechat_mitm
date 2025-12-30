@@ -44,6 +44,9 @@ class QingNiaoAutoProcess(object):
 
 
 class ChaLiXiongProcess(QingNiaoAutoProcess):
+    '''
+        查理熊
+    '''
 
     def click_clx_text_btn(self):
         self.automator.click_element('查理熊电竞馆', by='text')
@@ -66,20 +69,71 @@ class ChaLiXiongProcess(QingNiaoAutoProcess):
 
 
 class XingHaiProcess(QingNiaoAutoProcess):
-    def click_clx_text_btn(self):
+    '''
+        星海电竞馆
+    '''
+
+    def click_xh_text_btn(self):
         self.automator.click_element('星海电竞馆', by='text')
 
     def click_member_enter_btn(self):
         self.automator.click_element('会员中心', by='text')
-
 
     def main_process(self):
         self.open_wechat()
         if not self.search_bar_exists():
             self.enter_search_page()
         self.input_search_content("xinghaidianjingguan")
-        self.click_clx_text_btn()
+        self.click_xh_text_btn()
         self.click_member_enter_btn()
+
+
+class LeYouProcess(QingNiaoAutoProcess):
+    '''
+        乐游电堂
+    '''
+
+    def click_leyou_text_btn(self):
+        self.automator.click_element('乐游电堂', by='text')
+
+    def click_fast_enter_btn(self):
+        self.automator.click_element('快捷入口', by='text')
+
+    def click_one_short_reserve_btn(self):
+        self.automator.click_element('一键订座', by='text')
+
+    def main_process(self):
+        self.open_wechat()
+        if not self.search_bar_exists():
+            self.enter_search_page()
+        self.input_search_content("leyoudiantang")
+        self.click_leyou_text_btn()
+        self.click_fast_enter_btn()
+        self.click_one_short_reserve_btn()
+
+
+class QingniaoUnitProcess(QingNiaoAutoProcess):
+    '''
+        青鸟电竞联盟
+    '''
+
+    def click_qingniao_text_btn(self):
+        self.automator.click_element('青鸟电竞联盟', by='text')
+
+    def click_fast_enter_btn(self):
+        self.automator.click_element('快捷入口', by='text')
+
+    def click_one_short_reserve_btn(self):
+        self.automator.click_element('一键订座', by='text')
+
+    def main_process(self):
+        self.open_wechat()
+        if not self.search_bar_exists():
+            self.enter_search_page()
+        self.input_search_content("qingniaodianjinglianmeng")
+        self.click_qingniao_text_btn()
+        self.click_fast_enter_btn()
+        self.click_one_short_reserve_btn()
 
 
 if __name__ == '__main__':
@@ -89,3 +143,12 @@ if __name__ == '__main__':
     time.sleep(5)
     xh = XingHaiProcess()
     xh.main_process()
+
+    time.sleep(5)
+    ly = LeYouProcess()
+    ly.main_process()
+
+    time.sleep(5)
+    qn = QingniaoUnitProcess()
+    qn.main_process()
+    time.sleep(5)
