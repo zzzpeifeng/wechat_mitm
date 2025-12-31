@@ -309,6 +309,45 @@ class ControlPanel(QWidget):
         """)
         buttons_container.addWidget(self.proxy_btn)
 
+        # 添加启动自动化按钮
+        self.automation_btn = QPushButton("启动自动化")
+        self.automation_btn.setCheckable(True)
+        self.automation_btn.setObjectName("automationBtn")
+        self.automation_btn.setFixedSize(140, 24)  # 固定尺寸，高度符合规范
+        self.automation_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #9b59b6;
+                border: none;
+                color: white;
+                padding: 4px 12px;
+                font-size: 12px;
+                border-radius: 6px;
+                font-weight: 500;
+                outline: none;
+            }
+            
+            QPushButton:hover {
+                background-color: #b06ab8;
+            }
+            
+            QPushButton:pressed {
+                background-color: #8a4da5;
+            }
+            
+            QPushButton:checked {
+                background-color: #f56c6c;
+            }
+            
+            QPushButton:checked:hover {
+                background-color: #f78989;
+            }
+            
+            QPushButton:focus {
+                outline: none;
+            }
+        """)
+        buttons_container.addWidget(self.automation_btn)
+
         layout.addLayout(buttons_container)
 
         return group

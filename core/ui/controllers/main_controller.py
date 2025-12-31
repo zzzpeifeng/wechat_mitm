@@ -56,6 +56,7 @@ class MainController(QObject):
         # 数据收集开始连接
         self.view.control_panel.crawler_btn.clicked.connect(self.on_crawler_toggle)
         self.view.control_panel.dbz_crawler_btn.clicked.connect(self.on_dbz_crawler_toggle)  # 添加DBZ爬虫连接
+        self.view.control_panel.automation_btn.clicked.connect(self.on_automation_toggle)  # 添加自动化按钮连接
 
         # 日志控制连接
         self.view.log_panel.clear_log_btn.clicked.connect(self.on_clear_logs)
@@ -199,36 +200,7 @@ class MainController(QObject):
             if success:
                 self.is_mitm_running = True
                 self.view.control_panel.mitm_service_btn.setText("停止青鸟监控")
-                self.view.control_panel.mitm_service_btn.setStyleSheet("""
-                    QPushButton {
-                        background-color: #409eff;
-                        border: none;
-                        color: white;
-                        padding: 4px 12px;
-                        font-size: 12px;
-                        border-radius: 6px;
-                        font-weight: 500;
-                        outline: none;
-                    }
-                    QPushButton:hover {
-                        background-color: #66b1ff;
-                    }
-                    QPushButton:pressed {
-                        background-color: #3a8ee6;
-                    }
-                    
-                    QPushButton:checked {
-                        background-color: #f56c6c;
-                    }
-                    
-                    QPushButton:checked:hover {
-                        background-color: #f78989;
-                    }
-                    
-                    QPushButton:focus {
-                        outline: none;
-                    }
-                """)
+
                 self.view.status_panel.update_mitm_status(True)
                 self.view.log_message("青鸟平台服务启动成功")
             else:
@@ -238,7 +210,6 @@ class MainController(QObject):
             self.proxy_controller.stop_mitmproxy_gracefully()
             self.is_mitm_running = False
             self.view.control_panel.mitm_service_btn.setText("启动青鸟监控")
-            self.view.control_panel.mitm_service_btn.setStyleSheet("")
             self.view.status_panel.update_mitm_status(False)
             self.view.log_message("青鸟监控 服务已停止")
 
@@ -250,17 +221,6 @@ class MainController(QObject):
             if success:
                 self.is_proxy_enabled = True
                 self.view.control_panel.proxy_btn.setText("禁用全局代理")
-                self.view.control_panel.proxy_btn.setStyleSheet("""
-                    QPushButton {
-                        background-color: #f56c6c;
-                    }
-                    QPushButton:hover {
-                        background-color: #f78989;
-                    }
-                    QPushButton:pressed {
-                        background-color: #dd6161;
-                    }
-                """)
                 self.view.status_panel.update_proxy_status(True)
                 self.view.log_message("全局代理已启用")
             else:
@@ -270,7 +230,6 @@ class MainController(QObject):
             self.proxy_controller.disable_global_proxy()
             self.is_proxy_enabled = False
             self.view.control_panel.proxy_btn.setText("启用全局代理")
-            self.view.control_panel.proxy_btn.setStyleSheet("")
             self.view.status_panel.update_proxy_status(False)
             self.view.log_message("全局代理已禁用")
 
@@ -288,23 +247,12 @@ class MainController(QObject):
 
             # 修改按钮状态
             self.view.control_panel.crawler_btn.setText("停止青鸟爬虫")
-            self.view.control_panel.crawler_btn.setStyleSheet("""
-                QPushButton {
-                    background-color: #f56c6c;
-                }
-                QPushButton:hover {
-                    background-color: #f78989;
-                }
-                QPushButton:pressed {
-                    background-color: #dd6161;
-                }
-            """)
+
 
             self.view.log_message("开始执行青鸟爬虫任务...")
         else:
             # 停止爬虫（如果需要实现停止功能的话）
             self.view.control_panel.crawler_btn.setText("启动青鸟爬虫")
-            self.view.control_panel.crawler_btn.setStyleSheet("")
             self.view.log_message("青鸟爬虫任务已完成")
 
     def on_dbz_crawler_toggle(self):
@@ -321,29 +269,39 @@ class MainController(QObject):
 
             # 修改按钮状态
             self.view.control_panel.dbz_crawler_btn.setText("停止大巴掌爬虫")
-            self.view.control_panel.dbz_crawler_btn.setStyleSheet("""
-                QPushButton {
-                    background-color: #f56c6c;
-                }
-                QPushButton:hover {
-                    background-color: #f78989;
-                }
-                QPushButton:pressed {
-                    background-color: #dd6161;
-                }
-            """)
 
             self.view.log_message("开始执行大巴掌爬虫任务...")
         else:
             # 停止爬虫（如果需要实现停止功能的话）
             self.view.control_panel.dbz_crawler_btn.setText("大巴掌爬虫")
-            self.view.control_panel.dbz_crawler_btn.setStyleSheet("")
             self.view.log_message("大巴掌爬虫任务已完成")
+
+    def on_automation_toggle(self):
+        """自动化开关切换"""
+        # 注意：按钮在点击后会自动切换checked状态
+        if self.view.control_panel.automation_btn.isChecked():
+            # 自动化开始
+            # 导入AllDataCollectorWorker
+            from core.ui.controllers.all_data_collector_worker import AllDataCollectorWorker
+            # 创建并启动所有数据收集工作线程
+            self.all_data_worker = AllDataCollectorWorker()
+            self.all_data_worker.finished.connect(self.on_all_data_collection_finished)
+            self.all_data_worker.progress.connect(self.view.log_message)
+            self.all_data_worker.log_message.connect(self.view.log_message)  # 连接日志信号
+            self.all_data_worker.start()
+
+            # 修改按钮状态
+            self.view.control_panel.automation_btn.setText("停止自动化")
+
+            self.view.log_message("开始执行所有自动化任务...")
+        else:
+            # 停止自动化（如果需要实现停止功能的话）
+            self.view.control_panel.automation_btn.setText("启动自动化")
+            self.view.log_message("自动化任务已完成")
 
     def on_data_collection_finished(self):
         """青鸟数据收集完成回调"""
         self.view.control_panel.crawler_btn.setText("启动青鸟爬虫")
-        self.view.control_panel.crawler_btn.setStyleSheet("")
         self.view.control_panel.crawler_btn.setChecked(False)
         self.view.log_message("青鸟数据收集任务已完成")
 
@@ -355,7 +313,6 @@ class MainController(QObject):
     def on_dbz_data_collection_finished(self):
         """大巴掌数据收集完成回调"""
         self.view.control_panel.dbz_crawler_btn.setText("大巴掌爬虫")
-        self.view.control_panel.dbz_crawler_btn.setStyleSheet("")
         self.view.control_panel.dbz_crawler_btn.setChecked(False)
         self.view.log_message("大巴掌数据收集任务已完成")
 
@@ -363,6 +320,17 @@ class MainController(QObject):
         if self.dbz_data_worker:
             self.dbz_data_worker.deleteLater()
             self.dbz_data_worker = None
+
+    def on_all_data_collection_finished(self):
+        """所有数据收集完成回调"""
+        self.view.control_panel.automation_btn.setText("启动自动化")
+        self.view.control_panel.automation_btn.setChecked(False)
+        self.view.log_message("所有自动化任务已完成")
+
+        # 清理工作线程
+        if self.all_data_worker:
+            self.all_data_worker.deleteLater()
+            self.all_data_worker = None
 
     def on_clear_logs(self):
         """清除日志"""
