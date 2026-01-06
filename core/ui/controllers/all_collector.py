@@ -18,42 +18,34 @@ class AllCollector:
 
     def get_all_data(self):
         # 发送日志到UI
-        if enable_global_proxy():
-            self.log_callback("查理熊采集cookie前打开代理：成功")
-        else:
-            self.log_callback("查理熊采集cookie前打开代理：失败")
         self.log_callback("开始执行查理熊数据收集任务...")
         self.process_obj = ChaLiXiongProcess()
         self.process_obj.main_process()
         time.sleep(5)
-        if disable_global_proxy():
-            self.log_callback("查理熊采集cookie前禁用代理：成功")
-        else:
-            self.log_callback("禁用全局禁用代理：失败")
 
-        # if self.log_callback:
-        #     self.log_callback("查理熊数据收集任务完成，开始执行星海电竞馆数据收集任务...")
-        #
-        # self.xinghai_process.main_process()
-        # time.sleep(5)
-        #
-        # if self.log_callback:
-        #     self.log_callback("星海电竞馆数据收集任务完成，开始执行乐优数据收集任务...")
-        #
-        # self.leyou_process.main_process()
-        # time.sleep(5)
-        #
-        # if self.log_callback:
-        #     self.log_callback("乐优数据收集任务完成，开始执行青鸟数据收集任务...")
-        #
-        # self.qingniao_process.main_process()
-        # time.sleep(5)
-        #
-        # if self.log_callback:
-        #     self.log_callback("青鸟数据收集任务完成，开始执行电锋VS数据收集任务...")
-        #
-        # self.dianfeng_process.main_process()
-        # time.sleep(5)
-        #
-        # if self.log_callback:
-        #     self.log_callback("所有数据收集任务完成")
+        if self.log_callback:
+            self.log_callback("查理熊数据收集任务完成，开始执行星海电竞馆数据收集任务...")
+
+        self.xinghai_process.main_process()
+        time.sleep(5)
+
+        if self.log_callback:
+            self.log_callback("星海电竞馆数据收集任务完成，开始执行乐优数据收集任务...")
+
+        self.leyou_process.main_process()
+        time.sleep(5)
+
+        if self.log_callback:
+            self.log_callback("乐优数据收集任务完成，开始执行青鸟数据收集任务...")
+
+        self.qingniao_process.main_process()
+        time.sleep(5)
+
+        if self.log_callback:
+            self.log_callback("青鸟数据收集任务完成，开始执行电锋VS数据收集任务...")
+
+        self.dianfeng_process.main_process()
+        time.sleep(5)
+
+        if self.log_callback:
+            self.log_callback("所有数据收集任务完成")
