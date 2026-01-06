@@ -19,7 +19,7 @@ class AllCollector:
         self.process_obj = ChaLiXiongProcess()
         self.process_obj.main_process()
         time.sleep(5)
-        
+
         # 检查数据时间戳
         self._check_data_timestamp("查理熊")
 
@@ -29,7 +29,7 @@ class AllCollector:
         self.process_obj = XingHaiProcess()
         self.process_obj.main_process()
         time.sleep(5)
-        
+
         # 检查数据时间戳
         self._check_data_timestamp("星海电竞馆")
 
@@ -39,7 +39,7 @@ class AllCollector:
         self.process_obj = LeYouProcess()
         self.process_obj.main_process()
         time.sleep(5)
-        
+
         # 检查数据时间戳
         self._check_data_timestamp("乐游")
 
@@ -49,7 +49,7 @@ class AllCollector:
         self.process_obj = QingniaoUnitProcess()
         self.process_obj.main_process()
         time.sleep(5)
-        
+
         # 检查数据时间戳
         self._check_data_timestamp("青鸟")
 
@@ -59,18 +59,19 @@ class AllCollector:
         self.process_obj = DianfengVSProcess()
         self.process_obj.main_process()
         time.sleep(5)
-        
+
         # 检查数据时间戳
         self._check_data_timestamp("电锋VS")
 
         if self.log_callback:
             self.log_callback("所有数据收集任务完成")
-    
+
     def _check_data_timestamp(self, process_name: str):
         """检查数据库中的数据时间戳与当前时间的差距"""
         data = db_manager.get_chain_cookie()
         if data and 'created_at' in data:
             created_at = data['created_at']
+            chain_id = data['chain_id']
             # 确保 created_at 是 datetime 对象
             if isinstance(created_at, str):
                 # 尝试解析ISO格式的时间字符串
@@ -91,12 +92,12 @@ class AllCollector:
                     except ValueError:
                         self.log_callback(f"无法解析 {process_name} 的时间戳: {created_at}")
                         return
-            
+
             current_time = datetime.now()
             time_diff = abs((current_time - created_at).total_seconds())
-            
+
             if time_diff < 60:  # 小于1分钟
-                self.log_callback(f"{process_name} - 成功")
+                self.log_callback(f"{process_name}- {chain_id} - 成功")
             else:
                 self.log_callback(f"{process_name} - 时间差距: {int(time_diff)}秒")
         else:
