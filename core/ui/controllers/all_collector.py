@@ -56,12 +56,12 @@ class AllCollector:
         if self.log_callback:
             self.log_callback("青鸟数据收集任务完成，开始执行电锋VS数据收集任务...")
 
-        self.process_obj = DianfengVSProcess()
-        self.process_obj.main_process()
-        time.sleep(5)
-
-        # 检查数据时间戳
-        self._check_data_timestamp("电锋VS")
+        # self.process_obj = DianfengVSProcess()
+        # self.process_obj.main_process()
+        # time.sleep(5)
+        #
+        # # 检查数据时间戳
+        # self._check_data_timestamp("电锋VS")
 
         if self.log_callback:
             self.log_callback("所有数据收集任务完成")
