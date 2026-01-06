@@ -25,6 +25,7 @@ class MainController(QObject):
 
     def __init__(self, view: MitmProxyMainView):
         super().__init__()
+        self.all_data_worker = None
         self.view = view
         self.proxy_controller = ProxyController()
         self.data_qn_collector = QNDataCollector()
@@ -247,7 +248,6 @@ class MainController(QObject):
 
             # 修改按钮状态
             self.view.control_panel.crawler_btn.setText("停止青鸟爬虫")
-
 
             self.view.log_message("开始执行青鸟爬虫任务...")
         else:

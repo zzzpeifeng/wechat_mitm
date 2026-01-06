@@ -131,3 +131,35 @@ def disable_linux_proxy():
         return True
     except Exception as e:
         return False
+
+
+def enable_global_proxy() -> bool:
+    """启用系统全局代理"""
+    import platform
+    system = platform.system()
+    
+    if system == "Windows":
+        return enable_windows_proxy()
+    elif system == "Darwin":  # macOS
+        return enable_macos_proxy()
+    elif system == "Linux":
+        return enable_linux_proxy()
+    else:
+        print(f"不支持的操作系统: {system}")
+        return False
+
+
+def disable_global_proxy():
+    """禁用系统全局代理"""
+    import platform
+    system = platform.system()
+    
+    if system == "Windows":
+        return disable_windows_proxy()
+    elif system == "Darwin":  # macOS
+        return disable_macos_proxy()
+    elif system == "Linux":
+        return disable_linux_proxy()
+    else:
+        print(f"不支持的操作系统: {system}")
+        return False

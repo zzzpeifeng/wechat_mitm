@@ -940,6 +940,9 @@ class AndroidAutomation:
         self.d = None
 
 
+def main():
+    au = AndroidAutomation()
+
 
 if __name__ == "__main__":
     main()

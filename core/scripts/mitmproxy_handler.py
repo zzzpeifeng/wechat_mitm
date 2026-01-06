@@ -8,6 +8,7 @@ from typing import Optional
 
 from mitmproxy import http
 from mitmproxy.script import concurrent
+from mitmproxy import ctx
 
 from core.utils.database import get_db_manager
 
@@ -248,6 +249,20 @@ def request(flow: http.HTTPFlow) -> None:
         flow (http.HTTPFlow): HTTP 流对象
     """
     interceptor.request(flow)
+
+
+def server_connect(server_conn):
+    """
+    当与服务器建立连接时的回调函数
+    """
+    logger.info(f"连接到服务器: {server_conn.address}")
+
+
+def tls_established_server(conn):
+    """
+    TLS连接建立成功时的回调函数
+    """
+    logger.info(f"与服务器建立TLS连接: {conn.address}")
 
 
 print("Script loading started")

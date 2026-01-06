@@ -13,12 +13,13 @@ class AllDataCollectorWorker(QThread):
 
     def __init__(self):
         super().__init__()
-        self.all_data_collector = AllCollector()
+        self.all_data_collector = None
 
     def run(self):
         try:
             self.log_message.emit("开始执行所有数据收集任务...")
             # 设置日志回调函数，以便AllCollector可以发送日志消息到UI
+            self.all_data_collector = AllCollector()
             self.all_data_collector.log_callback = lambda msg: self.log_message.emit(msg)
             self.all_data_collector.get_all_data()
             self.progress.emit("所有数据收集任务完成")

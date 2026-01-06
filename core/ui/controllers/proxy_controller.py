@@ -32,6 +32,50 @@ class ProxyController:
         self.logger = logging.getLogger(__name__)
         self.is_running = False
 
+    def _ensure_mitmproxy_certs(self):
+        """
+        确保mitmproxy证书存在并正确配置
+        """
+        import os
+        import stat
+        
+        # 确保~/.mitmproxy目录存在
+        confdir = os.path.expanduser('~/.mitmproxy')
+        if not os.path.exists(confdir):
+            os.makedirs(confdir, mode=0o755, exist_ok=True)
+            
+        self.logger.info(f"mitmproxy配置目录: {confdir}")
+
+    def _get_mitmproxy_cert_path(self):
+        """
+        获取mitmproxy证书路径
+        """
+        confdir = os.path.expanduser('~/.mitmproxy')
+        cert_path = os.path.join(confdir, 'mitmproxy-ca-cert.pem')
+        return cert_path
+
+    def install_ca_cert(self):
+        """
+        提供安装CA证书的指导信息
+        """
+        cert_path = self._get_mitmproxy_cert_path()
+        
+        print(f"mitmproxy CA证书位置: {cert_path}")
+        print("\n要让客户端信任代理证书，请按以下步骤操作：")
+        print("1. 启动代理服务")
+        print("2. 访问 http://mitm.it/ 在浏览器中下载并安装证书")
+        print("3. 对于移动设备，请配置代理为 127.0.0.1:8081，然后访问 http://mitm.it/")
+        print("4. 对于iOS设备，需要在设置 > 通用 > 描述文件中信任证书")
+        print("5. 对于Android设备，可能需要在设置 > 安全 > 证书管理中安装证书")
+        
+        # 如果证书文件存在，显示其路径
+        if os.path.exists(cert_path):
+            print(f"\n证书文件已存在: {cert_path}")
+        else:
+            print(f"\n证书文件不存在，将在首次启动mitmproxy时创建: {cert_path}")
+        
+        return cert_path
+
     def start_mitmproxy(self, log_callback=None) -> bool:
         """
         启动mitmproxy服务
@@ -170,21 +214,8 @@ class ProxyController:
             bool: 启用是否成功
         """
         try:
-            system = platform.system()
-
-            if system == "Windows":
-                from core.utils.tools.proxy_utils import enable_windows_proxy
-                return enable_windows_proxy()
-            elif system == "Darwin":  # macOS
-                from core.utils.tools.proxy_utils import enable_macos_proxy
-                return enable_macos_proxy()
-            elif system == "Linux":
-                from core.utils.tools.proxy_utils import enable_linux_proxy
-                return enable_linux_proxy()
-            else:
-                self.logger.error(f"不支持的操作系统: {system}")
-                return False
-
+            from core.utils.tools.proxy_utils import enable_global_proxy as enable_system_proxy
+            return enable_system_proxy()
         except Exception as e:
             self.logger.error(f"启用全局代理失败: {str(e)}")
             return False
@@ -192,23 +223,11 @@ class ProxyController:
     def disable_global_proxy(self):
         """禁用系统全局代理"""
         try:
-            system = platform.system()
-
-            if system == "Windows":
-                from core.utils.tools.proxy_utils import disable_windows_proxy
-                disable_res = disable_windows_proxy()
-                return disable_res
-            elif system == "Darwin":  # macOS
-                from core.utils.tools.proxy_utils import disable_macos_proxy
-                return disable_macos_proxy()
-            elif system == "Linux":
-                from core.utils.tools.proxy_utils import disable_linux_proxy
-                return disable_linux_proxy()
-
-            self.logger.info("全局代理已禁用")
-
+            from core.utils.tools.proxy_utils import disable_global_proxy as disable_system_proxy
+            return disable_system_proxy()
         except Exception as e:
             self.logger.error(f"禁用全局代理时出错: {str(e)}")
+            return False
 
     def _disable_windows_proxy(self):
         """禁用Windows系统代理"""
@@ -264,5 +283,3 @@ class ProxyController:
         except Exception as e:
             self.logger.error(f"启用Linux代理失败: {str(e)}")
             return False
-
-
