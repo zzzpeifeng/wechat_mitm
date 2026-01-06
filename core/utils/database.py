@@ -130,6 +130,9 @@ class MongoDBManager:
             logging.error(f"插入数据失败: {str(e)}")
             return False
 
+
+
+
     def insert_request_data(self, data: Dict[str, Any]) -> bool:
         """
         插入完整的请求数据到数据库
@@ -189,6 +192,35 @@ class MongoDBManager:
         except Exception as e:
             logging.error(f"插入在线率数据失败: {str(e)}")
             return False
+
+    def get_chain_cookie(self) -> Optional[Dict[str, Any]]:
+        """
+        从 chain_cookies 集合中获取一条数据
+        
+        Returns:
+            Optional[Dict[str, Any]]: 返回查询到的数据字典，如果未找到则返回None
+        """
+        if not self.connected:
+            logging.error("数据库未连接，无法查询数据")
+            return None
+
+        try:
+            # 使用 'chain_cookies' 集合作为数据源
+            collection = self.db['chain_cookies']
+            
+            # 由于表中永远只有一条数据，使用 find_one 查询第一条
+            result = collection.find_one()
+            
+            if result:
+                logging.info("成功获取 chain_cookies 数据")
+            else:
+                logging.info("chain_cookies 集合中未找到数据")
+                
+            return result
+            
+        except Exception as e:
+            logging.error(f"查询 chain_cookies 数据失败: {str(e)}")
+            return None
 
     def get_connection_status(self) -> Dict[str, Any]:
         """
