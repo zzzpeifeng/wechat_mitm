@@ -396,6 +396,7 @@ class AndroidAutomation:
             else:
                 raise ValueError(f"不支持的选择器类型: {by}")
             element.click()
+            time.sleep(0.5)
         except Exception as e:
             print(f"点击元素时出错: {e}")
             raise
@@ -485,6 +486,7 @@ class AndroidAutomation:
         Returns:
             bool: 是否输入成功
         """
+        time.sleep(0.5)
         try:
             if not self.device_id:
                 cmd = ["adb", "shell", "input", "text", text]

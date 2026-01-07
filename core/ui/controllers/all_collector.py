@@ -43,7 +43,7 @@ class AllCollector:
         check_res = self._check_data_timestamp("查理熊")
 
         # 调用QNDataCollector获取青鸟数据
-        if not check_res:
+        if check_res:
             self._collect_qn_data('查理熊', check_res)
 
         if self.log_callback:
@@ -60,7 +60,7 @@ class AllCollector:
         check_res = self._check_data_timestamp("星海电竞馆")
 
         # 调用QNDataCollector获取青鸟数据
-        if not check_res:
+        if check_res:
             self._collect_qn_data('青海电竞馆', check_res)
 
         if self.log_callback:
@@ -77,7 +77,7 @@ class AllCollector:
         check_res = self._check_data_timestamp("乐游")
 
         # 调用QNDataCollector获取青鸟数据
-        if not check_res:
+        if check_res:
             self._collect_qn_data('乐游', check_res)
         if self.log_callback:
             self.log_callback("乐优数据收集任务完成，开始执行青鸟数据收集任务...")
@@ -93,7 +93,7 @@ class AllCollector:
         check_res = self._check_data_timestamp("青鸟")
 
         # 调用QNDataCollector获取青鸟数据
-        if not check_res:
+        if check_res:
             self._collect_qn_data('青鸟', check_res)
 
         if self.log_callback:
@@ -107,7 +107,7 @@ class AllCollector:
         # self._check_data_timestamp("电锋VS")
 
         # 调用QNDataCollector获取青鸟数据
-        self._collect_qn_data()
+        # self._collect_qn_data()
 
         if self.log_callback:
             self.log_callback("所有数据收集任务完成")
@@ -143,7 +143,7 @@ class AllCollector:
             time_diff = abs((current_time - created_at).total_seconds())
 
             if time_diff < 60:  # 小于1分钟
-                self.log_callback(f"{process_name}- {chain_id} - 成功")
+                self.log_callback(f"{process_name}- {chain_id} - 时间校验成功：{created_at}")
             else:
                 self.log_callback(f"{process_name} - 时间差距: {int(time_diff)}秒")
             return chain_id
