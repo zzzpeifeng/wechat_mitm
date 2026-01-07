@@ -2,20 +2,30 @@ import time
 from datetime import datetime
 from core.utils.database import db_manager
 
-from core.automation.auto_process import ChaLiXiongProcess, XingHaiProcess, LeYouProcess, QingniaoUnitProcess, \
-    DianfengVSProcess
 from core.utils.tools.proxy_utils import enable_global_proxy, disable_global_proxy
+from core.utils.scheduler_manager import SchedulerManager
 
 
 class AllCollector:
 
-    def __init__(self):
+    def __init__(self, scheduler_manager=None):
         self.process_obj = None
         self.log_callback = None  # 日志回调函数
+        self.scheduler_manager = scheduler_manager or SchedulerManager()
+
+    def _import_auto_processes(self):
+        """延迟导入自动化处理模块，避免uiautomator2兼容性问题"""
+        from core.automation.auto_process import ChaLiXiongProcess, XingHaiProcess, LeYouProcess, QingniaoUnitProcess, \
+            DianfengVSProcess
+        return ChaLiXiongProcess, XingHaiProcess, LeYouProcess, QingniaoUnitProcess, DianfengVSProcess
 
     def get_all_data(self):
         # 发送日志到UI
         self.log_callback("开始执行查理熊数据收集任务...")
+        
+        # 延迟导入自动化处理模块
+        ChaLiXiongProcess, _, _, _, _ = self._import_auto_processes()
+        
         self.process_obj = ChaLiXiongProcess()
         self.process_obj.main_process()
         time.sleep(5)
@@ -26,6 +36,9 @@ class AllCollector:
         if self.log_callback:
             self.log_callback("查理熊数据收集任务完成，开始执行星海电竞馆数据收集任务...")
 
+        # 延迟导入自动化处理模块
+        _, XingHaiProcess, _, _, _ = self._import_auto_processes()
+        
         self.process_obj = XingHaiProcess()
         self.process_obj.main_process()
         time.sleep(5)
@@ -36,6 +49,9 @@ class AllCollector:
         if self.log_callback:
             self.log_callback("星海电竞馆数据收集任务完成，开始执行乐游数据收集任务...")
 
+        # 延迟导入自动化处理模块
+        _, _, LeYouProcess, _, _ = self._import_auto_processes()
+        
         self.process_obj = LeYouProcess()
         self.process_obj.main_process()
         time.sleep(5)
@@ -46,6 +62,9 @@ class AllCollector:
         if self.log_callback:
             self.log_callback("乐优数据收集任务完成，开始执行青鸟数据收集任务...")
 
+        # 延迟导入自动化处理模块
+        _, _, _, QingniaoUnitProcess, _ = self._import_auto_processes()
+        
         self.process_obj = QingniaoUnitProcess()
         self.process_obj.main_process()
         time.sleep(5)
@@ -102,3 +121,25 @@ class AllCollector:
                 self.log_callback(f"{process_name} - 时间差距: {int(time_diff)}秒")
         else:
             self.log_callback(f"{process_name} - 未找到数据或created_at字段")
+
+    def start_scheduled_task(self, hours_interval=2):
+        """启动定时任务，可配置间隔小时数"""
+        self.scheduler_manager.add_scheduled_job(
+            func=self.get_all_data,
+            job_id='all_data_collection',
+            hours_interval=hours_interval,
+            name='所有数据收集任务'
+        )
+        self.scheduler_manager.start_scheduler()
+        if self.log_callback:
+            self.log_callback(f"定时任务已启动，每{hours_interval}小时执行一次")
+    
+    def stop_scheduled_task(self):
+        """停止定时任务"""
+        self.scheduler_manager.remove_job('all_data_collection')
+        if self.log_callback:
+            self.log_callback("定时任务已停止")
+    
+    def is_scheduler_running(self):
+        """检查调度器是否正在运行"""
+        return self.scheduler_manager.is_job_scheduled('all_data_collection')

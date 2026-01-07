@@ -11,7 +11,9 @@ from core.ui.controllers.dbz_data_collector import DBZDataCollector
 from core.ui.controllers.dbz_data_collector_worker import DBZDataCollectorWorker
 from core.ui.views.main_window import MitmProxyMainView
 from core.ui.controllers.proxy_controller import ProxyController
+from core.ui.controllers.all_collector import AllCollector
 from core.utils.database import get_db_manager
+from core.utils.scheduler_manager import SchedulerManager
 
 
 class MainController(QObject):
@@ -33,11 +35,15 @@ class MainController(QObject):
         self.qn_data_worker = None
         self.dbz_data_worker = None  # 添加DBZ数据工作线程
         self.db_manager = get_db_manager()
+        self.scheduler_manager = SchedulerManager()
+        self.all_collector = AllCollector(scheduler_manager=self.scheduler_manager)
+        self.all_collector.log_callback = self.view.log_message  # 设置日志回调
 
         # 状态管理
         self.is_collecting = False
         self.is_mitm_running = False
         self.is_proxy_enabled = False
+        self.is_scheduled_task_running = False  # 新增：定时任务状态
         self.collected_count = 0
 
         self.setup_connections()
@@ -58,6 +64,7 @@ class MainController(QObject):
         self.view.control_panel.crawler_btn.clicked.connect(self.on_crawler_toggle)
         self.view.control_panel.dbz_crawler_btn.clicked.connect(self.on_dbz_crawler_toggle)  # 添加DBZ爬虫连接
         self.view.control_panel.automation_btn.clicked.connect(self.on_automation_toggle)  # 添加自动化按钮连接
+        self.view.status_panel.schedule_task_btn.clicked.connect(self.on_schedule_task_toggle)  # 添加定时任务按钮连接
 
         # 日志控制连接
         self.view.log_panel.clear_log_btn.clicked.connect(self.on_clear_logs)
@@ -298,6 +305,36 @@ class MainController(QObject):
             # 停止自动化（如果需要实现停止功能的话）
             self.view.control_panel.automation_btn.setText("启动自动化")
             self.view.log_message("自动化任务已完成")
+
+    def on_schedule_task_toggle(self):
+        """定时任务开关切换"""
+        # 获取执行间隔
+        hours_interval = int(self.view.status_panel.interval_combo.currentText())
+        
+        # 检查按钮状态来决定是启动还是停止
+        if self.view.status_panel.schedule_task_btn.isChecked():
+            # 启动定时任务
+            # AllCollector内部会输出日志，所以这里不需要重复输出
+            self.all_collector.start_scheduled_task(hours_interval=hours_interval)
+            self.is_scheduled_task_running = True
+            
+            # 修改按钮状态
+            self.view.status_panel.schedule_task_btn.setText("停止定时任务")
+            
+            # 更新状态显示
+            self.view.status_panel.update_schedule_status(True)
+            
+        else:
+            # 停止定时任务
+            # AllCollector内部会输出日志，所以这里不需要重复输出
+            self.all_collector.stop_scheduled_task()
+            self.is_scheduled_task_running = False
+            
+            # 修改按钮状态
+            self.view.status_panel.schedule_task_btn.setText("启动定时任务")
+            
+            # 更新状态显示
+            self.view.status_panel.update_schedule_status(False)
 
     def on_data_collection_finished(self):
         """青鸟数据收集完成回调"""

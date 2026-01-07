@@ -1,7 +1,7 @@
 # ui/views/components/control_panel.py
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QCheckBox,
-    QPushButton, QLineEdit, QLabel, QTableWidget, QHeaderView, QFrame
+    QPushButton, QLineEdit, QLabel, QTableWidget, QHeaderView, QFrame, QComboBox
 )
 from PyQt5.QtCore import Qt
 

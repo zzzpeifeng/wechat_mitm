@@ -1,6 +1,6 @@
 # ui/views/components/status_panel.py
 from PyQt5.QtWidgets import (
-    QWidget, QHBoxLayout, QVBoxLayout, QGroupBox, QLabel
+    QWidget, QHBoxLayout, QVBoxLayout, QGroupBox, QLabel, QPushButton, QComboBox
 )
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont
@@ -25,9 +25,9 @@ class StatusPanel(QWidget):
         self.service_group = self._create_service_status_group()
         layout.addWidget(self.service_group, 1)
 
-        # 数据统计组
-        self.stats_group = self._create_stats_group()
-        layout.addWidget(self.stats_group, 1)
+        # 定时任务组
+        self.schedule_group = self._create_schedule_group()
+        layout.addWidget(self.schedule_group, 1)
 
     def _create_service_status_group(self) -> QGroupBox:
         """创建服务状态组"""
@@ -110,50 +110,177 @@ class StatusPanel(QWidget):
 
         return group
 
-    def _create_stats_group(self) -> QGroupBox:
-        """创建数据统计组"""
-        group = QGroupBox("数据统计")
+    def _create_schedule_group(self) -> QGroupBox:
+        """创建定时任务组"""
+        group = QGroupBox("定时任务")
         layout = QVBoxLayout(group)
-        layout.setSpacing(8)
-        layout.setContentsMargins(10, 20, 10, 15)
+        layout.setSpacing(10)  # 增加间距以提升视觉效果
+        layout.setContentsMargins(12, 20, 12, 15)  # 增加边距
 
-        # 数据收集统计
-        collected_container = QHBoxLayout()
-        collected_container.setSpacing(8)
-        icon_label = QLabel("📊")
-        icon_label.setStyleSheet("font-size: 16px;")
-        collected_container.addWidget(icon_label)
+        # 任务状态显示
+        status_container = QHBoxLayout()
+        status_container.setSpacing(10)  # 统一间距
+        status_icon = QLabel("⏱️")
+        status_icon.setStyleSheet("""
+            font-size: 18px;
+            min-width: 20px;
+            text-align: center;
+        """)
+        status_container.addWidget(status_icon)
         
-        self.collected_count_label = QLabel("已收集数据: 0 条")
-        self.collected_count_label.setObjectName("collectedCountLabel")
-        self.collected_count_label.setStyleSheet("""
+        self.schedule_status_label = QLabel("状态: 未运行")
+        self.schedule_status_label.setObjectName("scheduleStatusLabel")
+        self.schedule_status_label.setStyleSheet("""
             color: #606266;
             font-size: 13px;
             font-weight: 500;
             padding: 3px 0;
         """)
-        collected_container.addWidget(self.collected_count_label)
-        collected_container.addStretch()
-        layout.addLayout(collected_container)
+        status_container.addWidget(self.schedule_status_label)
+        status_container.addStretch()
+        layout.addLayout(status_container)
 
-        # 最后更新时间
-        update_container = QHBoxLayout()
-        update_container.setSpacing(8)
-        icon_label2 = QLabel("🕒")
-        icon_label2.setStyleSheet("font-size: 16px;")
-        update_container.addWidget(icon_label2)
+        # 任务执行间隔设置
+        interval_container = QHBoxLayout()
+        interval_container.setSpacing(10)  # 统一间距
+        interval_icon = QLabel("🕒")
+        interval_icon.setStyleSheet("""
+            font-size: 18px;
+            min-width: 20px;
+            text-align: center;
+        """)
+        interval_container.addWidget(interval_icon)
         
-        self.last_update_label = QLabel("最后更新: --")
-        self.last_update_label.setObjectName("lastUpdateLabel")
-        self.last_update_label.setStyleSheet("""
+        interval_text = QLabel("执行间隔:")
+        interval_text.setStyleSheet("""
             color: #606266;
             font-size: 13px;
             font-weight: 500;
             padding: 3px 0;
         """)
-        update_container.addWidget(self.last_update_label)
-        update_container.addStretch()
-        layout.addLayout(update_container)
+        interval_container.addWidget(interval_text)
+        
+        self.interval_combo = QComboBox()
+        self.interval_combo.addItems(["1", "2", "3", "4", "6", "8", "12"])
+        self.interval_combo.setCurrentText("2")  # 默认2小时
+        self.interval_combo.setStyleSheet("""
+            QComboBox {
+                border: 1px solid #dcdfe6;
+                border-radius: 6px;
+                padding: 5px 10px;
+                font-size: 13px;
+                min-width: 65px;
+                background-color: #ffffff;
+                color: #606266;
+                selection-background-color: #409eff;
+            }
+            
+            QComboBox:focus {
+                border: 1px solid #409eff;
+                outline: none;
+                box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.1);
+            }
+            
+            QComboBox::drop-down {
+                border: none;
+                width: 20px;
+                subcontrol-origin: padding;
+                subcontrol-position: top right;
+                border-radius: 0 6px 6px 0;
+            }
+            
+            QComboBox::down-arrow {
+                image: none;
+                width: 12px;
+                height: 12px;
+                margin-right: 5px;
+            }
+            
+            QComboBox::down-arrow::after {
+                content: '▼';
+                font-size: 10px;
+                color: #c0c4cc;
+            }
+            
+            QComboBox QAbstractItemView {
+                border: 1px solid #dcdfe6;
+                border-radius: 4px;
+                background-color: #ffffff;
+                selection-background-color: #ecf5ff;
+                selection-color: #606266;
+                padding: 2px;
+            }
+            
+            QComboBox QAbstractItemView::item {
+                padding: 6px 10px;
+                color: #606266;
+            }
+            
+            QComboBox QAbstractItemView::item:selected {
+                background-color: #ecf5ff;
+                color: #409eff;
+            }
+        """)
+        # 设置下拉框的最小高度以匹配文本高度
+        self.interval_combo.setFixedHeight(32)
+        interval_container.addWidget(self.interval_combo)
+        
+        interval_unit = QLabel("小时")
+        interval_unit.setStyleSheet("""
+            color: #909399;
+            font-size: 13px;
+            font-weight: normal;
+            padding: 3px 0;
+        """)
+        interval_container.addWidget(interval_unit)
+        interval_container.addStretch()
+        layout.addLayout(interval_container)
+
+        # 定时任务控制按钮
+        button_container = QHBoxLayout()
+        button_container.setSpacing(10)  # 统一间距
+        
+        self.schedule_task_btn = QPushButton("启动定时任务")
+        self.schedule_task_btn.setCheckable(True)
+        self.schedule_task_btn.setObjectName("scheduleTaskBtn")
+        self.schedule_task_btn.setFixedHeight(32)  # 增加按钮高度以匹配下拉框
+        self.schedule_task_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #3498db;
+                border: none;
+                color: white;
+                padding: 6px 16px;
+                font-size: 13px;
+                border-radius: 6px;
+                font-weight: 500;
+                outline: none;
+                min-width: 120px;
+            }
+            
+            QPushButton:hover {
+                background-color: #5dade2;
+            }
+            
+            QPushButton:pressed {
+                background-color: #2980b9;
+            }
+            
+            QPushButton:checked {
+                background-color: #f56c6c;
+            }
+            
+            QPushButton:checked:hover {
+                background-color: #f78989;
+            }
+            
+            QPushButton:focus {
+                outline: none;
+                box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.3);
+            }
+        """)
+        button_container.addWidget(self.schedule_task_btn)
+        button_container.addStretch()
+        layout.addLayout(button_container)
 
         # 添加弹性空间
         layout.addStretch(1)
@@ -189,3 +316,10 @@ class StatusPanel(QWidget):
             background-color: {color};
             border-radius: 6px;
         """)
+
+    def update_schedule_status(self, running: bool):
+        """更新定时任务状态显示"""
+        status_text = "运行中" if running else "未运行"
+        color = "#67c23a" if running else "#f56c6c"
+        self.schedule_status_label.setText(f"状态: {status_text}")
+        # 也可以在这里更新状态指示器颜色
