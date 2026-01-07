@@ -568,6 +568,7 @@ class AndroidAutomation:
 
             # 创建一个进程来执行adb shell并立即退出
             result = subprocess.run(["adb", "shell", "echo", "test"], capture_output=True, text=True)
+            time.sleep(1)
             if result.returncode != 0:
                 print(f"adb shell 命令失败: {result.stderr}")
                 return False
