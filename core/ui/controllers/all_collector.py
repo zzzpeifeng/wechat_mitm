@@ -4,6 +4,7 @@ from core.utils.database import db_manager
 
 from core.utils.tools.proxy_utils import enable_global_proxy, disable_global_proxy
 from core.utils.scheduler_manager import SchedulerManager
+from core.ui.controllers.data_collector import QNDataCollector
 
 
 class AllCollector:
@@ -19,58 +20,81 @@ class AllCollector:
             DianfengVSProcess
         return ChaLiXiongProcess, XingHaiProcess, LeYouProcess, QingniaoUnitProcess, DianfengVSProcess
 
+    def _collect_qn_data(self, wb_name, chain_id):
+        """执行青鸟数据收集任务"""
+        self.log_callback(f"开始执行{wb_name}-{chain_id}数据收集任务...")
+        qn_collector = QNDataCollector()
+        qn_collector.log_callback = self.log_callback  # 设置日志回调
+        qn_collector.get_all_data()
+        self.log_callback("青鸟数据收集任务完成")
+
     def get_all_data(self):
         # 发送日志到UI
         self.log_callback("开始执行查理熊数据收集任务...")
-        
+
         # 延迟导入自动化处理模块
         ChaLiXiongProcess, _, _, _, _ = self._import_auto_processes()
-        
+
         self.process_obj = ChaLiXiongProcess()
         self.process_obj.main_process()
         time.sleep(5)
 
         # 检查数据时间戳
-        self._check_data_timestamp("查理熊")
+        check_res = self._check_data_timestamp("查理熊")
+
+        # 调用QNDataCollector获取青鸟数据
+        if not check_res:
+            self._collect_qn_data('查理熊', check_res)
 
         if self.log_callback:
             self.log_callback("查理熊数据收集任务完成，开始执行星海电竞馆数据收集任务...")
 
         # 延迟导入自动化处理模块
         _, XingHaiProcess, _, _, _ = self._import_auto_processes()
-        
+
         self.process_obj = XingHaiProcess()
         self.process_obj.main_process()
         time.sleep(5)
 
         # 检查数据时间戳
-        self._check_data_timestamp("星海电竞馆")
+        check_res = self._check_data_timestamp("星海电竞馆")
+
+        # 调用QNDataCollector获取青鸟数据
+        if not check_res:
+            self._collect_qn_data('青海电竞馆', check_res)
 
         if self.log_callback:
             self.log_callback("星海电竞馆数据收集任务完成，开始执行乐游数据收集任务...")
 
         # 延迟导入自动化处理模块
         _, _, LeYouProcess, _, _ = self._import_auto_processes()
-        
+
         self.process_obj = LeYouProcess()
         self.process_obj.main_process()
         time.sleep(5)
 
         # 检查数据时间戳
-        self._check_data_timestamp("乐游")
+        check_res = self._check_data_timestamp("乐游")
 
+        # 调用QNDataCollector获取青鸟数据
+        if not check_res:
+            self._collect_qn_data('乐游', check_res)
         if self.log_callback:
             self.log_callback("乐优数据收集任务完成，开始执行青鸟数据收集任务...")
 
         # 延迟导入自动化处理模块
         _, _, _, QingniaoUnitProcess, _ = self._import_auto_processes()
-        
+
         self.process_obj = QingniaoUnitProcess()
         self.process_obj.main_process()
         time.sleep(5)
 
         # 检查数据时间戳
-        self._check_data_timestamp("青鸟")
+        check_res = self._check_data_timestamp("青鸟")
+
+        # 调用QNDataCollector获取青鸟数据
+        if not check_res:
+            self._collect_qn_data('青鸟', check_res)
 
         if self.log_callback:
             self.log_callback("青鸟数据收集任务完成，开始执行电锋VS数据收集任务...")
@@ -81,6 +105,9 @@ class AllCollector:
         #
         # # 检查数据时间戳
         # self._check_data_timestamp("电锋VS")
+
+        # 调用QNDataCollector获取青鸟数据
+        self._collect_qn_data()
 
         if self.log_callback:
             self.log_callback("所有数据收集任务完成")
@@ -119,8 +146,10 @@ class AllCollector:
                 self.log_callback(f"{process_name}- {chain_id} - 成功")
             else:
                 self.log_callback(f"{process_name} - 时间差距: {int(time_diff)}秒")
+            return chain_id
         else:
             self.log_callback(f"{process_name} - 未找到数据或created_at字段")
+            return None
 
     def start_scheduled_task(self, hours_interval=2):
         """启动定时任务，可配置间隔小时数"""
@@ -133,13 +162,13 @@ class AllCollector:
         self.scheduler_manager.start_scheduler()
         if self.log_callback:
             self.log_callback(f"定时任务已启动，每{hours_interval}小时执行一次")
-    
+
     def stop_scheduled_task(self):
         """停止定时任务"""
         self.scheduler_manager.remove_job('all_data_collection')
         if self.log_callback:
             self.log_callback("定时任务已停止")
-    
+
     def is_scheduler_running(self):
         """检查调度器是否正在运行"""
         return self.scheduler_manager.is_job_scheduled('all_data_collection')
