@@ -546,6 +546,7 @@ class AndroidAutomation:
         try:
             print("正在执行: adb kill-server")
             result = subprocess.run(["adb", "kill-server"], capture_output=True, text=True)
+            time.sleep(1)
             if result.returncode != 0:
                 print(f"adb kill-server 命令可能失败: {result.stderr}")
             else:
@@ -553,6 +554,7 @@ class AndroidAutomation:
 
             print("正在执行: adb start-server")
             result = subprocess.run(["adb", "start-server"], capture_output=True, text=True)
+            time.sleep(1)
             if result.returncode != 0:
                 print(f"adb start-server 命令失败: {result.stderr}")
                 return False
