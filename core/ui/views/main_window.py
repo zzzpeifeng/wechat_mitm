@@ -23,7 +23,37 @@ class MitmProxyMainView(QMainWindow):
 
     def init_ui(self):
         """初始化用户界面布局"""
-        self.setWindowTitle("MitmProxy 控制面板")
+        self.setWindowTitle("太原网吧爬虫控制面板")
+        
+        # 设置窗口图标
+        try:
+            import sys
+            from PyQt5.QtGui import QIcon, QPixmap, QPainter, QColor, QFont
+            from PyQt5.QtCore import Qt
+            
+            # 创建一个简单的图标
+            pixmap = QPixmap(64, 64)
+            pixmap.fill(QColor(255, 255, 255, 0))  # 透明背景
+            
+            painter = QPainter(pixmap)
+            painter.setRenderHint(QPainter.Antialiasing)
+            
+            # 绘制一个蓝色圆形背景
+            painter.setBrush(QColor(64, 158, 255))  # #409eff 蓝色
+            painter.setPen(QColor(64, 158, 255))
+            painter.drawEllipse(8, 8, 48, 48)  # 圆形
+            
+            # 绘制字母"MP"代表MitmProxy
+            painter.setPen(QColor(255, 255, 255))  # 白色文字
+            painter.setFont(QFont("Arial", 20, QFont.Bold))
+            painter.drawText(16, 32, "MP")  # 在圆内绘制"MP"
+            
+            painter.end()
+            
+            icon = QIcon(pixmap)
+            self.setWindowIcon(icon)
+        except Exception as e:
+            print(f"设置窗口图标失败: {e}")
         
         # 设置窗口大小 - 调整为更合适的默认尺寸
         self.setGeometry(100, 100, 1200, 750)
@@ -210,7 +240,7 @@ class MitmProxyMainView(QMainWindow):
 
     def _create_title_label(self) -> QLabel:
         """创建标题标签"""
-        title_label = QLabel("MitmProxy 控制面板")
+        title_label = QLabel("太原网吧数据控制面板")
         title_font = QFont()
         title_font.setPointSize(18)  # 减小字体大小
         title_font.setBold(True)

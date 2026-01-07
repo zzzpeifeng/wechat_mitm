@@ -178,7 +178,6 @@ class StatusPanel(QWidget):
             QComboBox:focus {
                 border: 1px solid #409eff;
                 outline: none;
-                box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.1);
             }
             
             QComboBox::drop-down {
@@ -275,7 +274,6 @@ class StatusPanel(QWidget):
             
             QPushButton:focus {
                 outline: none;
-                box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.3);
             }
         """)
         button_container.addWidget(self.schedule_task_btn)
