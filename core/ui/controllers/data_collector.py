@@ -2,10 +2,14 @@
 import time
 import logging
 import uuid
+import urllib3
 from dotenv import load_dotenv
 import requests
 from core.utils.tools.tools import dict_to_cookie_string, parse_cookie_header
 from PyQt5.QtCore import QThread, pyqtSignal
+
+# 禁用SSL警告
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 load_dotenv()
 from core.utils.database import get_db_manager
