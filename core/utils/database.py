@@ -182,8 +182,8 @@ class MongoDBManager:
         existing_data = self.collection.find_one({"sheet_date": today})
 
         # 获取当前小时
-        current_hour = datetime.now().strftime("%H")
-        current_hour = int(current_hour)  # 转换为整数
+        current_hour = datetime.now().strftime("%H")  # 保持为字符串，例如 "00", "14"
+        # current_hour = int(current_hour)  # 转换为整数 - 注释掉，保持为字符串
 
         if existing_data:
             # 如果已存在当天的数据，更新该文档

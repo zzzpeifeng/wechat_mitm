@@ -129,7 +129,7 @@ class QNDataCollector:
         for index, store in enumerate(data_dict.get('offline_stores', []), 1):
             # 计算总座位数
             total_seats = store.get('online_machine_count', 0) + store.get('offline_machine_count', 0)
-            off_store_key = f'{store.get('id')}-{store.get('offline_store_name', '')}'
+            off_store_key = f'{store.get('offline_store_id')}-{store.get('offline_store_name', '')}'
             online_value = f'{str(store.get('online_machine_count', 0))} / {str(total_seats)}'
             upload_data.update({off_store_key: online_value})
         self.db_manager.insert_online_rate_v2(upload_data)
