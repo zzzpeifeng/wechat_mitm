@@ -118,6 +118,22 @@ class QNDataCollector:
         response = self.session.get(url, verify=False)
         return response.json()
 
+    def update_db_online_data(self, data_dict):
+        """
+        更新数据库中的线上数据
+
+        Args:
+            data_dict (dict): 从青鸟平台获取的数据
+        """
+        upload_data = {}
+        for index, store in enumerate(data_dict.get('offline_stores', []), 1):
+            # 计算总座位数
+            total_seats = store.get('online_machine_count', 0) + store.get('offline_machine_count', 0)
+            off_store_key = f'{store.get('id')}-{store.get('offline_store_name', '')}'
+            online_value = f'{str(store.get('online_machine_count', 0))} / {str(total_seats)}'
+            upload_data.update({off_store_key: online_value})
+        self.db_manager.insert_online_rate_v2(upload_data)
+
     def upload_to_feishu_sheet(self, data_dict):
         """
         将数据上传到飞书电子表格
@@ -270,7 +286,8 @@ class QNDataCollector:
             self.log(f"{store.get('name')}获取门店订座信息成功,等待2s，防止被封禁")
             time.sleep(2)
         print(data_dict)
-        self.db_manager.insert_online_rate(data_dict)
+        # self.db_manager.insert_online_rate(data_dict)
+        self.update_db_online_data(data_dict)
 
         # 上传数据到飞书表格
         self.log("开始上传数据到飞书表格...")

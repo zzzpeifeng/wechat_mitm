@@ -130,9 +130,6 @@ class MongoDBManager:
             logging.error(f"插入数据失败: {str(e)}")
             return False
 
-
-
-
     def insert_request_data(self, data: Dict[str, Any]) -> bool:
         """
         插入完整的请求数据到数据库
@@ -161,6 +158,55 @@ class MongoDBManager:
         except Exception as e:
             logging.error(f"插入请求数据失败: {str(e)}")
             return False
+
+    def insert_online_rate_v2(self, data: Dict[str, Any]):
+        """
+       插入在线率数据到数据库
+
+       Args:
+           data (Dict[str, Any]): 在线率数据字典
+
+       Returns:
+           bool: 插入是否成功
+       """
+        if not self.connected:
+            logging.error("数据库未连接，无法插入数据")
+            return False
+
+        self.collection = self.db['online_rate_new']
+
+        # 获取当天日期 yyyy-mm-dd格式
+        today = datetime.now().strftime("%Y-%m-%d")
+
+        # 查询集合中是否有sheet_date等于当天日期的数据
+        existing_data = self.collection.find_one({"sheet_date": today})
+
+        # 获取当前小时
+        current_hour = datetime.now().strftime("%H")
+        current_hour = int(current_hour)  # 转换为整数
+
+        if existing_data:
+            # 如果已存在当天的数据，更新该文档
+            result = self.collection.update_one(
+                {"sheet_date": today},
+                {"$set": {f"data.{current_hour}": data}}
+            )
+            if result.modified_count > 0:
+                logging.info(f"成功更新当天在线率数据，日期: {today}, 小时: {current_hour}")
+            else:
+                logging.info(f"更新当天在线率数据，但数据未发生变化，日期: {today}, 小时: {current_hour}")
+        else:
+            # 如果不存在当天的数据，创建新的文档
+            new_document = {
+                "sheet_date": today,
+                "data": {
+                    current_hour: data
+                }
+            }
+            result = self.collection.insert_one(new_document)
+            logging.info(f"成功创建新的在线率数据文档，日期: {today}, 小时: {current_hour}, ID: {result.inserted_id}")
+
+        return True
 
     def insert_online_rate(self, data: Dict[str, Any]) -> bool:
         """
@@ -207,17 +253,17 @@ class MongoDBManager:
         try:
             # 使用 'chain_cookies' 集合作为数据源
             collection = self.db['chain_cookies']
-            
+
             # 由于表中永远只有一条数据，使用 find_one 查询第一条
             result = collection.find_one()
-            
+
             if result:
                 logging.info("成功获取 chain_cookies 数据")
             else:
                 logging.info("chain_cookies 集合中未找到数据")
-                
+
             return result
-            
+
         except Exception as e:
             logging.error(f"查询 chain_cookies 数据失败: {str(e)}")
             return None
