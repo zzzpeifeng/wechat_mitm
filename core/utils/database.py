@@ -186,10 +186,14 @@ class MongoDBManager:
         # current_hour = int(current_hour)  # 转换为整数 - 注释掉，保持为字符串
 
         if existing_data:
-            # 如果已存在当天的数据，更新该文档
+            # 如果已存在当天的数据，获取当前小时的数据并合并
+            existing_hour_data = existing_data.get('data', {}).get(current_hour, {})
+            # 将新数据合并到现有数据中
+            merged_data = {**existing_hour_data, **data}
+            
             result = self.collection.update_one(
                 {"sheet_date": today},
-                {"$set": {f"data.{current_hour}": data}}
+                {"$set": {f"data.{current_hour}": merged_data}}
             )
             if result.modified_count > 0:
                 logging.info(f"成功更新当天在线率数据，日期: {today}, 小时: {current_hour}")
