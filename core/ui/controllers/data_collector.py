@@ -236,6 +236,10 @@ class QNDataCollector:
                 except Exception as e:
                     self.log(f"{store.get('name')}获取门店订座信息失败，重试失败:{e}")
                     continue
+            if temp_book_seat_info.get('code') != 0:
+                self.log(f"{store.get('name')}获取门店订座信息失败:{temp_book_seat_info.get('msg')},跳过")
+                continue
+
             self.log(f"{store.get('name')}获取门店订座信息成功,开始组装信息")
             offline_online_machine_count = 0
             offline_offline_machine_count = 0
