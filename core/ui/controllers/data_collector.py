@@ -199,6 +199,7 @@ class QNDataCollector:
             self.log(self.cookie_header)
             return
         # 循环门店列表
+        self.log(f'门店数:{len(offline_store_list.get("data"))}')
         for store in offline_store_list['data']:
             offline_store_id = store.get('id')
             if offline_store_id == data_dict.get('store_id'):
