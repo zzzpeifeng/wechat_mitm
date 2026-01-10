@@ -25,10 +25,9 @@ class SchedulerManager:
             
     def add_scheduled_job(self, func, job_id, hours_interval=2, name=None):
         """添加定时任务 - 跨平台兼容"""
-        cron_expression = f"0 */{hours_interval} * * *"
         self.scheduler.add_job(
             func=func,
-            trigger=CronTrigger.from_crontab(cron_expression),
+            trigger=CronTrigger(hour=f"*/{hours_interval}", minute="0"),  # 每隔指定小时数的第0分钟执行
             id=job_id,
             name=name or f"Job-{job_id}",
             replace_existing=True,

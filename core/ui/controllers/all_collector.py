@@ -29,88 +29,95 @@ class AllCollector:
         self.log_callback("青鸟数据收集任务完成")
 
     def get_all_data(self):
-        # 发送日志到UI
-        self.log_callback("开始执行查理熊数据收集任务...")
+        try:
+            # 发送日志到UI
+            self.log_callback("开始执行查理熊数据收集任务...")
 
-        # 延迟导入自动化处理模块
-        ChaLiXiongProcess, _, _, _, _ = self._import_auto_processes()
+            # 延迟导入自动化处理模块
+            ChaLiXiongProcess, _, _, _, _ = self._import_auto_processes()
 
-        self.process_obj = ChaLiXiongProcess()
-        self.process_obj.main_process()
-        time.sleep(5)
+            self.process_obj = ChaLiXiongProcess()
+            self.process_obj.main_process()
+            time.sleep(5)
 
-        # 检查数据时间戳
-        check_res = self._check_data_timestamp("查理熊")
+            # 检查数据时间戳
+            check_res = self._check_data_timestamp("查理熊")
 
-        # 调用QNDataCollector获取青鸟数据
-        if check_res:
-            self._collect_qn_data('查理熊', check_res)
+            # 调用QNDataCollector获取青鸟数据
+            if check_res:
+                self._collect_qn_data('查理熊', check_res)
 
-        if self.log_callback:
-            self.log_callback("查理熊数据收集任务完成，开始执行星海电竞馆数据收集任务...")
+            if self.log_callback:
+                self.log_callback("查理熊数据收集任务完成，开始执行星海电竞馆数据收集任务...")
 
-        # 延迟导入自动化处理模块
-        _, XingHaiProcess, _, _, _ = self._import_auto_processes()
+            # 延迟导入自动化处理模块
+            _, XingHaiProcess, _, _, _ = self._import_auto_processes()
 
-        self.process_obj = XingHaiProcess()
-        self.process_obj.main_process()
-        time.sleep(5)
+            self.process_obj = XingHaiProcess()
+            self.process_obj.main_process()
+            time.sleep(5)
 
-        # 检查数据时间戳
-        check_res = self._check_data_timestamp("星海电竞馆")
+            # 检查数据时间戳
+            check_res = self._check_data_timestamp("星海电竞馆")
 
-        # 调用QNDataCollector获取青鸟数据
-        if check_res:
-            self._collect_qn_data('青海电竞馆', check_res)
+            # 调用QNDataCollector获取青鸟数据
+            if check_res:
+                self._collect_qn_data('青海电竞馆', check_res)
 
-        if self.log_callback:
-            self.log_callback("星海电竞馆数据收集任务完成，开始执行乐游数据收集任务...")
+            if self.log_callback:
+                self.log_callback("星海电竞馆数据收集任务完成，开始执行乐游数据收集任务...")
 
-        # 延迟导入自动化处理模块
-        _, _, LeYouProcess, _, _ = self._import_auto_processes()
+            # 延迟导入自动化处理模块
+            _, _, LeYouProcess, _, _ = self._import_auto_processes()
 
-        self.process_obj = LeYouProcess()
-        self.process_obj.main_process()
-        time.sleep(5)
+            self.process_obj = LeYouProcess()
+            self.process_obj.main_process()
+            time.sleep(5)
 
-        # 检查数据时间戳
-        check_res = self._check_data_timestamp("乐游")
+            # 检查数据时间戳
+            check_res = self._check_data_timestamp("乐游")
 
-        # 调用QNDataCollector获取青鸟数据
-        if check_res:
-            self._collect_qn_data('乐游', check_res)
-        if self.log_callback:
-            self.log_callback("乐优数据收集任务完成，开始执行青鸟数据收集任务...")
+            # 调用QNDataCollector获取青鸟数据
+            if check_res:
+                self._collect_qn_data('乐游', check_res)
+            if self.log_callback:
+                self.log_callback("乐优数据收集任务完成，开始执行青鸟数据收集任务...")
 
-        # 延迟导入自动化处理模块
-        _, _, _, QingniaoUnitProcess, _ = self._import_auto_processes()
+            # 延迟导入自动化处理模块
+            _, _, _, QingniaoUnitProcess, _ = self._import_auto_processes()
 
-        self.process_obj = QingniaoUnitProcess()
-        self.process_obj.main_process()
-        time.sleep(5)
+            self.process_obj = QingniaoUnitProcess()
+            self.process_obj.main_process()
+            time.sleep(5)
 
-        # 检查数据时间戳
-        check_res = self._check_data_timestamp("青鸟")
+            # 检查数据时间戳
+            check_res = self._check_data_timestamp("青鸟")
 
-        # 调用QNDataCollector获取青鸟数据
-        if check_res:
-            self._collect_qn_data('青鸟', check_res)
+            # 调用QNDataCollector获取青鸟数据
+            if check_res:
+                self._collect_qn_data('青鸟', check_res)
 
-        if self.log_callback:
-            self.log_callback("青鸟数据收集任务完成，开始执行电锋VS数据收集任务...")
+            if self.log_callback:
+                self.log_callback("青鸟数据收集任务完成，开始执行电锋VS数据收集任务...")
 
-        # self.process_obj = DianfengVSProcess()
-        # self.process_obj.main_process()
-        # time.sleep(5)
-        #
-        # # 检查数据时间戳
-        # self._check_data_timestamp("电锋VS")
+            # self.process_obj = DianfengVSProcess()
+            # self.process_obj.main_process()
+            # time.sleep(5)
+            #
+            # # 检查数据时间戳
+            # self._check_data_timestamp("电锋VS")
 
-        # 调用QNDataCollector获取青鸟数据
-        # self._collect_qn_data()
+            # 调用QNDataCollector获取青鸟数据
+            # self._collect_qn_data()
 
-        if self.log_callback:
-            self.log_callback("所有数据收集任务完成")
+            if self.log_callback:
+                self.log_callback("所有数据收集任务完成")
+        except Exception as e:
+            if self.log_callback:
+                self.log_callback(f"数据收集任务执行出错: {str(e)}")
+            # 记录错误但不中断定时任务的后续执行
+            import traceback
+            print(f"定时任务执行错误: {traceback.format_exc()}")
 
     def _check_data_timestamp(self, process_name: str):
         """检查数据库中的数据时间戳与当前时间的差距"""
