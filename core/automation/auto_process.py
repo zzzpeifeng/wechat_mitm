@@ -1,3 +1,5 @@
+import time
+
 from core.automation.auto import AndroidAutomation
 
 
@@ -52,17 +54,30 @@ class ChaLiXiongProcess(QingNiaoAutoProcess):
     def click_reserve_btn(self):
         self.automator.click_element('在线预定', by='text')
 
+    def reserve_btn_exists(self):
+        return self.automator.element_exists('在线预定', by='text')
+
     def click_reserve_online_book_btn(self):
         self.automator.click_element('在线订座', by='text')
+
+    def reserve_online_book_btn_exists(self):
+        return self.automator.element_exists('在线订座', by='text')
 
     def main_process(self):
         self.open_wechat()
         if not self.search_bar_exists():
-            self.enter_search_page()
-        self.input_search_content("chalixiong")
-        self.click_clx_text_btn()
-        self.click_reserve_btn()
-        self.click_reserve_online_book_btn()
+            self.enter_search_page()    # 搜索
+        self.input_search_content("chalixiong") # 输入搜索chalixiong
+        self.click_clx_text_btn()   # 点击查理熊电竞馆搜索结果
+        retry_times = 0
+        while not self.reserve_online_book_btn_exists():
+            time.sleep(1)
+            self.click_reserve_btn()    # 点击在线预定
+            if retry_times > 5:
+                break
+        while self.reserve_online_book_btn_exists():
+            time.sleep(1)
+            self.click_reserve_online_book_btn() # 点击在线订座,有就点
         # self.adb_input_search_content('chalixiong')
 
 
