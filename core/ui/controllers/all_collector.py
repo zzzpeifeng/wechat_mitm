@@ -5,6 +5,7 @@ from core.utils.database import db_manager
 from core.utils.tools.proxy_utils import enable_global_proxy, disable_global_proxy
 from core.utils.scheduler_manager import SchedulerManager
 from core.ui.controllers.data_collector import QNDataCollector
+from core.ui.controllers.dbz_data_collector import DBZDataCollector
 
 
 class AllCollector:
@@ -27,6 +28,14 @@ class AllCollector:
         qn_collector.log_callback = self.log_callback  # 设置日志回调
         qn_collector.get_all_data()
         self.log_callback("青鸟数据收集任务完成")
+
+    def _collect_dbz_data(self):
+        """执行大巴掌平台数据收集任务"""
+        self.log_callback("开始执行大巴掌平台数据收集任务...")
+        dbz_collector = DBZDataCollector()
+        result = dbz_collector.run_full_process()
+        self.log_callback(f"大巴掌平台数据收集任务完成，结果: {result.get('mongodb_save_result', 'Unknown')}")
+        return result
 
     def get_all_data(self):
         try:
@@ -109,6 +118,12 @@ class AllCollector:
 
             # 调用QNDataCollector获取青鸟数据
             # self._collect_qn_data()
+
+            if self.log_callback:
+                self.log_callback("开始执行大巴掌平台数据收集任务...")
+            
+            # 调用大巴掌平台数据收集功能
+            self._collect_dbz_data()
 
             if self.log_callback:
                 self.log_callback("所有数据收集任务完成")

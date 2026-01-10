@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from config.settings import FEISHUConfig
 # 导入飞书表格客户端
 from core.utils.tools.feishu_sheet_client import FeishuSheetClient
+from core.utils.database import get_db_manager
 
 
 @dataclass
@@ -66,6 +67,8 @@ class DBZDataCollector:
         self.token = None
         # 初始化飞书表格客户端
         self.feishu_client = FeishuSheetClient()
+        # 初始化数据库管理器
+        self.db_manager = get_db_manager()
 
     def _get_headers(self, host: str, token: Optional[str] = None) -> Dict[str, str]:
         """
@@ -561,6 +564,46 @@ class DBZDataCollector:
                 "error": str(e)
             }
 
+    def save_to_mongodb(self, processed_data: List[Dict[str, Any]]) -> bool:
+        """
+        将处理后的数据保存到MongoDB，参考QNDataCollector.update_db_online_data的格式
+        
+        Args:
+            processed_data (list): 处理后的数据
+            
+        Returns:
+            bool: 保存是否成功
+        """
+        try:
+            # 连接数据库
+            if not self.db_manager.connect():
+                logging.error("无法连接到数据库")
+                return False
+
+            # 构建要保存的数据格式
+            upload_data = {}
+            for brand_data in processed_data:
+                for netbar_data in brand_data["netbars"]:
+                    netbar_info = netbar_data["netbar_info"]
+                    seats_stats = netbar_data["seats_stats"]
+                    
+                    # 构建键值对，格式与QNDataCollector.update_db_online_data相同
+                    netbar_key = f'{netbar_info.get("id")}-{netbar_info.get("name", "")}'
+                    online_value = f'{str(seats_stats["online"])} / {str(seats_stats["total"])}'
+                    upload_data.update({netbar_key: online_value})
+            
+            # 调用数据库管理器的insert_online_rate_v2方法
+            success = self.db_manager.insert_online_rate_v2(upload_data)
+            logging.info(f"数据保存到MongoDB完成，成功: {success}")
+            
+            return success
+        except Exception as e:
+            logging.error(f"保存数据到MongoDB时发生异常: {e}")
+            return False
+        finally:
+            # 断开数据库连接
+            self.db_manager.disconnect()
+
     def run_full_process(self, auth_configs: Optional[List[AuthConfig]] = None,
                          spreadsheet_token: Optional[str] = None,
                          sheet_id: Optional[str] = None) -> Dict[str, Any]:
@@ -587,14 +630,19 @@ class DBZDataCollector:
         logging.info("格式化数据以适应飞书表格...")
         formatted_rows = self.format_for_feishu(processed_data)
 
+        # 4. 保存数据到MongoDB
+        logging.info("保存数据到MongoDB...")
+        mongodb_save_result = self.save_to_mongodb(processed_data)
+
         result = {
             "collected_data": collected_data,
             "processed_data": processed_data,
             "formatted_rows": formatted_rows,
+            "mongodb_save_result": mongodb_save_result,
             "upload_result": None
         }
 
-        # 4. 上传数据（如果提供了飞书参数）
+        # 5. 上传数据（如果提供了飞书参数）
         if spreadsheet_token and sheet_id:
             logging.info("上传数据到飞书表格...")
             upload_result = self.upload_to_feishu_sheet(spreadsheet_token, sheet_id, formatted_rows)

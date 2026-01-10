@@ -14,6 +14,7 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 load_dotenv()
 from core.utils.database import get_db_manager
 from core.utils.tools.feishu_sheet_client import FeishuSheetClient
+from core.ui.controllers.dbz_data_collector import DBZDataCollector
 
 # 配置日志
 logging.basicConfig(level=logging.INFO)
@@ -278,7 +279,7 @@ class QNDataCollector:
                 'offline_store_id': store.get('id'),
                 'offline_store_name': store.get('name'),
                 'areas': area_list,
-                'offline_machine_count': offline_offline_machine_count,
+                'offline_machine_count': offline_online_machine_count,
                 'online_machine_count': offline_online_machine_count
             }
             # 组装店铺信息
@@ -296,6 +297,12 @@ class QNDataCollector:
             self.log("数据上传到飞书表格完成")
         else:
             self.log("数据上传到飞书表格失败")
+
+        # 调用大巴掌平台数据收集功能
+        self.log("开始执行大巴掌平台数据收集任务...")
+        dbz_collector = DBZDataCollector()
+        dbz_result = dbz_collector.run_full_process()
+        self.log(f"大巴掌平台数据收集任务完成，结果: {dbz_result.get('mongodb_save_result', 'Unknown')}")
 
 
 class DataCollectionWorker(QThread):
