@@ -136,6 +136,14 @@ class AllCollector:
 
     def _check_data_timestamp(self, process_name: str):
         """检查数据库中的数据时间戳与当前时间的差距"""
+        # 确保数据库已连接
+        if not db_manager.connected:
+            print(f"警告: 数据库未连接，正在尝试连接...")
+            if not db_manager.connect():
+                print(f"错误: 无法连接到数据库，无法检查 {process_name} 的时间戳")
+                self.log_callback(f"错误: 无法连接到数据库，无法检查 {process_name} 的时间戳")
+                return None
+        
         data = db_manager.get_chain_cookie()
         if data and 'created_at' in data:
             created_at = data['created_at']

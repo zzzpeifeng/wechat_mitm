@@ -107,6 +107,17 @@ except ImportError:
 
 sys.path.insert(0, "{0}")
 
+# 导入数据库管理器并确保连接
+from core.utils.database import get_db_manager
+
+# 确保数据库连接
+db_manager = get_db_manager()
+connection_success = db_manager.connect()
+if not connection_success:
+    print("警告: 数据库连接失败，请检查网络连接和数据库配置")
+else:
+    print("数据库连接成功")
+
 # 导入 AllCollector 类并运行
 from core.ui.controllers.all_collector import AllCollector
 
@@ -126,6 +137,11 @@ except Exception as e:
     print("执行过程中发生错误: {{0}}".format(e))
     import traceback
     traceback.print_exc()
+finally:
+    # 确保数据库连接被关闭
+    if connection_success:
+        db_manager.disconnect()
+        print("已断开数据库连接")
 '''.format(project_root)]
     
     print(f"使用 Python 解释器: {python_exec}")

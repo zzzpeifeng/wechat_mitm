@@ -40,7 +40,7 @@ class MongoDBManager:
             mongodb_username = quote_plus(DatabaseConfig.MONGODB_USERNAME)
             mongodb_password = quote_plus(DatabaseConfig.MONGODB_PASSWORD)
 
-            logging.info(mongodb_password)
+            logging.info("Connecting to MongoDB...")
             # 构建连接字符串
             if mongodb_username and mongodb_password:
                 connection_string = f"mongodb://{mongodb_username}:{mongodb_password}@{mongodb_host}:{mongodb_port}/"
@@ -61,11 +61,11 @@ class MongoDBManager:
             # self.collection = self.db[mongodb_collection]
 
             self.connected = True
-            logging.info(f"成功连接到 MongoDB: {mongodb_host}:{mongodb_port}")
+            logging.info(f"Successfully connected to MongoDB: {mongodb_host}:{mongodb_port}")
             return True
 
         except Exception as e:
-            logging.error(f"连接 MongoDB 失败: {str(e)}")
+            logging.error(f"Failed to connect to MongoDB: {str(e)}")
             self.connected = False
             return False
 
@@ -77,7 +77,7 @@ class MongoDBManager:
             self.db = None
             self.collection = None
             self.connected = False
-            logging.info("已断开 MongoDB 连接")
+            logging.info("Disconnected from MongoDB")
 
     def insert_chain_data(self, host: str, domain: str, chain_id: str, cookie_header: str,
                           timestamp: datetime = None) -> bool:
@@ -93,10 +93,10 @@ class MongoDBManager:
         Returns:
             bool: 插入是否成功
         """
-        logging.info(f"成功进入insert_chain_data")
+        logging.info(f"Successfully entered insert_chain_data")
         self.collection = self.db['chain_cookies']
         if not self.connected or self.collection is None:
-            logging.error("数据库未连接，无法插入数据")
+            logging.error("Database not connected, unable to insert data")
             return False
         try:
             # 准备数据文档
@@ -110,7 +110,7 @@ class MongoDBManager:
             }
 
             # 插入数据
-            logging.info(f"准备插入数据")
+            logging.info(f"Preparing to insert data")
             # 使用 upsert 操作：如果存在相同 domain 的数据则更新，否则插入
             result = self.collection.update_one(
                 {"host": host},  # 查询条件
@@ -118,16 +118,16 @@ class MongoDBManager:
                 upsert=True  # 如果不存在则插入
             )
             if result.upserted_id:
-                logging.info(f"成功插入新数据，ID: {result.upserted_id}")
+                logging.info(f"Successfully inserted new data, ID: {result.upserted_id}")
             elif result.modified_count > 0:
-                logging.info(f"成功更新域名为 {domain} 的数据")
+                logging.info(f"Successfully updated data for domain {domain}")
             else:
-                logging.info(f"数据无变化，域名为 {domain} 的数据已存在且未被修改")
+                logging.info(f"No changes made, data for domain {domain} already exists and is unchanged")
 
             return True
 
         except Exception as e:
-            logging.error(f"插入数据失败: {str(e)}")
+            logging.error(f"Failed to insert data: {str(e)}")
             return False
 
     def insert_request_data(self, data: Dict[str, Any]) -> bool:
@@ -141,7 +141,7 @@ class MongoDBManager:
             bool: 插入是否成功
         """
         if not self.connected:
-            logging.error("数据库未连接，无法插入数据")
+            logging.error("Database not connected, unable to insert data")
             return False
 
         self.collection = self.db['chain_cookies']
@@ -152,11 +152,11 @@ class MongoDBManager:
 
             # 插入数据
             result = self.collection.insert_one(data)
-            logging.info(f"成功插入请求数据，ID: {result.inserted_id}")
+            logging.info(f"Successfully inserted request data, ID: {result.inserted_id}")
             return True
 
         except Exception as e:
-            logging.error(f"插入请求数据失败: {str(e)}")
+            logging.error(f"Failed to insert request data: {str(e)}")
             return False
 
     def insert_online_rate_v2(self, data: Dict[str, Any]):
@@ -170,7 +170,7 @@ class MongoDBManager:
            bool: 插入是否成功
        """
         if not self.connected:
-            logging.error("数据库未连接，无法插入数据")
+            logging.error("Database not connected, unable to insert data")
             return False
 
         self.collection = self.db['online_rate_new']
@@ -196,9 +196,9 @@ class MongoDBManager:
                 {"$set": {f"data.{current_hour}": merged_data}}
             )
             if result.modified_count > 0:
-                logging.info(f"成功更新当天在线率数据，日期: {today}, 小时: {current_hour}")
+                logging.info(f"Successfully updated online rate data for date: {today}, hour: {current_hour}")
             else:
-                logging.info(f"更新当天在线率数据，但数据未发生变化，日期: {today}, 小时: {current_hour}")
+                logging.info(f"Updated online rate data but no changes made, date: {today}, hour: {current_hour}")
         else:
             # 如果不存在当天的数据，创建新的文档
             new_document = {
@@ -208,7 +208,7 @@ class MongoDBManager:
                 }
             }
             result = self.collection.insert_one(new_document)
-            logging.info(f"成功创建新的在线率数据文档，日期: {today}, 小时: {current_hour}, ID: {result.inserted_id}")
+            logging.info(f"Successfully created new online rate data document, date: {today}, hour: {current_hour}, ID: {result.inserted_id}")
 
         return True
 
@@ -223,7 +223,7 @@ class MongoDBManager:
             bool: 插入是否成功
         """
         if not self.connected:
-            logging.error("数据库未连接，无法插入数据")
+            logging.error("Database not connected, unable to insert data")
             return False
 
         self.collection = self.db['online_rate']
@@ -236,11 +236,11 @@ class MongoDBManager:
 
             # 插入数据
             result = self.collection.insert_one(data)
-            logging.info(f"成功插入在线率数据，ID: {result.inserted_id}")
+            logging.info(f"Successfully inserted online rate data, ID: {result.inserted_id}")
             return True
 
         except Exception as e:
-            logging.error(f"插入在线率数据失败: {str(e)}")
+            logging.error(f"Failed to insert online rate data: {str(e)}")
             return False
 
     def get_chain_cookie(self) -> Optional[Dict[str, Any]]:
@@ -250,9 +250,13 @@ class MongoDBManager:
         Returns:
             Optional[Dict[str, Any]]: 返回查询到的数据字典，如果未找到则返回None
         """
+        # 如果数据库未连接，尝试连接
         if not self.connected:
-            logging.error("数据库未连接，无法查询数据")
-            return None
+            logging.warning("Database not connected, attempting to connect...")
+            success = self.connect()
+            if not success:
+                logging.error("Unable to connect to database, cannot query data")
+                return None
 
         try:
             # 使用 'chain_cookies' 集合作为数据源
@@ -262,14 +266,14 @@ class MongoDBManager:
             result = collection.find_one()
 
             if result:
-                logging.info("成功获取 chain_cookies 数据")
+                logging.info("Successfully retrieved chain_cookies data")
             else:
-                logging.info("chain_cookies 集合中未找到数据")
+                logging.info("No data found in chain_cookies collection")
 
             return result
 
         except Exception as e:
-            logging.error(f"查询 chain_cookies 数据失败: {str(e)}")
+            logging.error(f"Failed to query chain_cookies data: {str(e)}")
             return None
 
     def get_connection_status(self) -> Dict[str, Any]:
