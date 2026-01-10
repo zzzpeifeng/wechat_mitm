@@ -68,16 +68,27 @@ class ChaLiXiongProcess(QingNiaoAutoProcess):
         if not self.search_bar_exists():
             self.enter_search_page()    # 搜索
         self.input_search_content("chalixiong") # 输入搜索chalixiong
-        self.click_clx_text_btn()   # 点击查理熊电竞馆搜索结果
         retry_times = 0
-        while not self.reserve_online_book_btn_exists():
-            time.sleep(1)
-            self.click_reserve_btn()    # 点击在线预定
+        while not self.reserve_btn_exists():
+            time.sleep(2)
+            self.click_clx_text_btn()   # 点击查理熊电竞馆搜索结果
+            retry_times += 1
             if retry_times > 5:
                 break
+        retry_times = 0
+        while not self.reserve_online_book_btn_exists():
+            time.sleep(2)
+            self.click_reserve_btn()    # 点击在线预定
+            retry_times += 1
+            if retry_times > 5:
+                break
+        retry_times = 0
         while self.reserve_online_book_btn_exists():
-            time.sleep(1)
+            time.sleep(2)
             self.click_reserve_online_book_btn() # 点击在线订座,有就点
+            retry_times += 1
+            if retry_times > 5:
+                break
         # self.adb_input_search_content('chalixiong')
 
 
@@ -92,13 +103,30 @@ class XingHaiProcess(QingNiaoAutoProcess):
     def click_member_enter_btn(self):
         self.automator.click_element('会员中心', by='text')
 
+    def member_enter_btn_exists(self):
+        return self.automator.element_exists('会员中心', by='text')
+
     def main_process(self):
         self.open_wechat()
         if not self.search_bar_exists():
             self.enter_search_page()
+
         self.input_search_content("xinghaidianjingguan")
-        self.click_xh_text_btn()
-        self.click_member_enter_btn()
+        retry_times = 0
+        while not self.member_enter_btn_exists():
+            time.sleep(1)
+            self.click_xh_text_btn()
+            retry_times += 1
+            if retry_times > 5:
+                break
+
+        retry_times = 0
+        while self.member_enter_btn_exists():
+            time.sleep(1)
+            self.click_member_enter_btn()
+            retry_times += 1
+            if retry_times > 5:
+                break
 
 
 class LeYouProcess(QingNiaoAutoProcess):
@@ -112,17 +140,41 @@ class LeYouProcess(QingNiaoAutoProcess):
     def click_fast_enter_btn(self):
         self.automator.click_element('快捷入口', by='text')
 
+    def fast_enter_btn_exists(self):
+        return self.automator.element_exists('快捷入口', by='text')
+
     def click_one_short_reserve_btn(self):
         self.automator.click_element('一键订座', by='text')
+
+    def one_short_reserve_btn_exists(self):
+        return self.automator.element_exists('一键订座', by='text')
 
     def main_process(self):
         self.open_wechat()
         if not self.search_bar_exists():
             self.enter_search_page()
         self.input_search_content("leyoudiantang")
-        self.click_leyou_text_btn()
-        self.click_fast_enter_btn()
-        self.click_one_short_reserve_btn()
+        retry_times = 0
+        while not self.fast_enter_btn_exists():
+            time.sleep(1)
+            self.click_leyou_text_btn()
+            retry_times += 1
+            if retry_times > 5:
+                break
+        retry_times = 0
+        while not self.one_short_reserve_btn_exists():
+            time.sleep(1)
+            self.click_fast_enter_btn()
+            retry_times += 1
+            if retry_times > 5:
+                 break
+        retry_times = 0
+        while self.one_short_reserve_btn_exists():
+            time.sleep(1)
+            self.click_one_short_reserve_btn()
+            retry_times += 1
+            if retry_times > 5:
+                break
 
 
 class QingniaoUnitProcess(QingNiaoAutoProcess):
@@ -136,17 +188,41 @@ class QingniaoUnitProcess(QingNiaoAutoProcess):
     def click_fast_enter_btn(self):
         self.automator.click_element('快捷入口', by='text')
 
+    def fast_enter_btn_exists(self):
+        return self.automator.element_exists('快捷入口', by='text')
+
     def click_one_short_reserve_btn(self):
         self.automator.click_element('一键订座', by='text')
+
+    def one_short_reserve_btn_exists(self):
+        return self.automator.element_exists('一键订座', by='text')
 
     def main_process(self):
         self.open_wechat()
         if not self.search_bar_exists():
             self.enter_search_page()
         self.input_search_content("qingniaodianjinglianmeng")
-        self.click_qingniao_text_btn()
-        self.click_fast_enter_btn()
-        self.click_one_short_reserve_btn()
+        retry_times = 0
+        while not self.fast_enter_btn_exists():
+            time.sleep(1)
+            self.click_qingniao_text_btn()
+            retry_times += 1
+            if retry_times > 5:
+                break
+        retry_times = 0
+        while not self.one_short_reserve_btn_exists():
+            time.sleep(1)
+            self.click_fast_enter_btn()
+            retry_times += 1
+            if retry_times > 5:
+                break
+        retry_times = 0
+        while self.one_short_reserve_btn_exists():
+            time.sleep(1)
+            self.click_one_short_reserve_btn()
+            retry_times += 1
+            if retry_times > 5:
+                break
 
 
 class DianfengVSProcess(QingNiaoAutoProcess):
