@@ -61,7 +61,7 @@ class JiMuProcess(QingNiaoAutoProcess):
         self.open_wechat()
         if not self.search_bar_exists():
             self.enter_search_page()
-            self.input_search_content("jimugame")
+            self.input_search_content("jimudianjing")
         retry_times = 0
         while not self._member_center_btn_exists():
             time.sleep(1)
