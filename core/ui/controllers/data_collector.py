@@ -279,8 +279,9 @@ class QNDataCollector:
                 'offline_store_id': store.get('id'),
                 'offline_store_name': store.get('name'),
                 'areas': area_list,
-                'offline_machine_count': offline_online_machine_count,
-                'online_machine_count': offline_offline_machine_count
+                'online_machine_count': offline_online_machine_count, # 在线数
+                'offline_machine_count': offline_offline_machine_count, # 离线数
+
             }
             # 组装店铺信息
             data_dict['offline_stores'].append(offline_store_dict)
