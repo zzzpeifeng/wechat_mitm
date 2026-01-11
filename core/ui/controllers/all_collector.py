@@ -39,23 +39,23 @@ class AllCollector:
 
     def get_all_data(self):
         try:
-            # 发送日志到UI
-            self.log_callback("开始执行吉姆电竞数据收集任务...")
-
-            # 延迟导入自动化处理模块
-            _, _, _, _, _, JiMuProcess = self._import_auto_processes()
-
-            self.process_obj = JiMuProcess()
-            self.process_obj.main_process()
-            time.sleep(5)
-
-            # 检查数据时间戳
-            check_res = self._check_data_timestamp("吉姆电竞")
-
-            # 调用QNDataCollector获取青鸟数据
-            if check_res:
-                self._collect_qn_data('吉姆电竞', check_res)
-
+            # # 发送日志到UI
+            # self.log_callback("开始执行吉姆电竞数据收集任务...")
+            #
+            # # 延迟导入自动化处理模块
+            # _, _, _, _, _, JiMuProcess = self._import_auto_processes()
+            #
+            # self.process_obj = JiMuProcess()
+            # self.process_obj.main_process()
+            # time.sleep(5)
+            #
+            # # 检查数据时间戳
+            # check_res = self._check_data_timestamp("吉姆电竞")
+            #
+            # # 调用QNDataCollector获取青鸟数据
+            # if check_res:
+            #     self._collect_qn_data('吉姆电竞', check_res)
+            #
             if self.log_callback:
                 self.log_callback("吉姆电竞数据收集任务完成，开始执行查理熊数据收集任务...")
 
@@ -138,7 +138,7 @@ class AllCollector:
 
             if self.log_callback:
                 self.log_callback("开始执行大巴掌平台数据收集任务...")
-            
+
             # 调用大巴掌平台数据收集功能
             self._collect_dbz_data()
 
@@ -160,7 +160,7 @@ class AllCollector:
                 print(f"错误: 无法连接到数据库，无法检查 {process_name} 的时间戳")
                 self.log_callback(f"错误: 无法连接到数据库，无法检查 {process_name} 的时间戳")
                 return None
-        
+
         data = db_manager.get_chain_cookie()
         if data and 'created_at' in data:
             created_at = data['created_at']
