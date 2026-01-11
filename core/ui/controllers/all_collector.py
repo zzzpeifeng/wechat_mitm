@@ -18,8 +18,8 @@ class AllCollector:
     def _import_auto_processes(self):
         """延迟导入自动化处理模块，避免uiautomator2兼容性问题"""
         from core.automation.auto_process import ChaLiXiongProcess, XingHaiProcess, LeYouProcess, QingniaoUnitProcess, \
-            DianfengVSProcess
-        return ChaLiXiongProcess, XingHaiProcess, LeYouProcess, QingniaoUnitProcess, DianfengVSProcess
+            DianfengVSProcess, JiMuProcess
+        return ChaLiXiongProcess, XingHaiProcess, LeYouProcess, QingniaoUnitProcess, DianfengVSProcess, JiMuProcess
 
     def _collect_qn_data(self, wb_name, chain_id):
         """执行青鸟数据收集任务"""
@@ -40,10 +40,27 @@ class AllCollector:
     def get_all_data(self):
         try:
             # 发送日志到UI
-            self.log_callback("开始执行查理熊数据收集任务...")
+            self.log_callback("开始执行吉姆电竞数据收集任务...")
 
             # 延迟导入自动化处理模块
-            ChaLiXiongProcess, _, _, _, _ = self._import_auto_processes()
+            _, _, _, _, _, JiMuProcess = self._import_auto_processes()
+
+            self.process_obj = JiMuProcess()
+            self.process_obj.main_process()
+            time.sleep(5)
+
+            # 检查数据时间戳
+            check_res = self._check_data_timestamp("吉姆电竞")
+
+            # 调用QNDataCollector获取青鸟数据
+            if check_res:
+                self._collect_qn_data('吉姆电竞', check_res)
+
+            if self.log_callback:
+                self.log_callback("吉姆电竞数据收集任务完成，开始执行查理熊数据收集任务...")
+
+            # 延迟导入自动化处理模块
+            ChaLiXiongProcess, _, _, _, _, _ = self._import_auto_processes()
 
             self.process_obj = ChaLiXiongProcess()
             self.process_obj.main_process()
@@ -60,7 +77,7 @@ class AllCollector:
                 self.log_callback("查理熊数据收集任务完成，开始执行星海电竞馆数据收集任务...")
 
             # 延迟导入自动化处理模块
-            _, XingHaiProcess, _, _, _ = self._import_auto_processes()
+            _, XingHaiProcess, _, _, _, _ = self._import_auto_processes()
 
             self.process_obj = XingHaiProcess()
             self.process_obj.main_process()
@@ -77,7 +94,7 @@ class AllCollector:
                 self.log_callback("星海电竞馆数据收集任务完成，开始执行乐游数据收集任务...")
 
             # 延迟导入自动化处理模块
-            _, _, LeYouProcess, _, _ = self._import_auto_processes()
+            _, _, LeYouProcess, _, _, _ = self._import_auto_processes()
 
             self.process_obj = LeYouProcess()
             self.process_obj.main_process()
@@ -93,7 +110,7 @@ class AllCollector:
                 self.log_callback("乐优数据收集任务完成，开始执行青鸟数据收集任务...")
 
             # 延迟导入自动化处理模块
-            _, _, _, QingniaoUnitProcess, _ = self._import_auto_processes()
+            _, _, _, QingniaoUnitProcess, _, _ = self._import_auto_processes()
 
             self.process_obj = QingniaoUnitProcess()
             self.process_obj.main_process()

@@ -5,8 +5,8 @@ from core.automation.auto import AndroidAutomation
 
 class QingNiaoAutoProcess(object):
     WECHAT_APP_NAME = '微信'
-    WECHAT_SEARCH_BTN_XPATH = ('//*[@resource-id=\"com.tencent.mm:id/jha\"]/android.widget.ImageView[1]', 'xpath')
-    WECHAT_SEARCH_INPUT_XPATH = ('//*[@resource-id=\"com.tencent.mm:id/d98\"]', 'xpath')
+    WECHAT_SEARCH_BTN_XPATH = ('//*[@resource-id="com.tencent.mm:id/jha"]/android.widget.ImageView[1]', 'xpath')
+    WECHAT_SEARCH_INPUT_XPATH = ('//*[@resource-id="com.tencent.mm:id/d98"]', 'xpath')
 
     def __init__(self):
         self.automator = AndroidAutomation()
@@ -43,6 +43,41 @@ class QingNiaoAutoProcess(object):
         self.automator.adb_input_text(search_content)
 
 
+class JiMuProcess(QingNiaoAutoProcess):
+    """
+         吉姆电竞
+    """
+
+    def click_jimu_text_btn(self):
+        self.automator.click_element('吉姆电竞', by='text')
+
+    def click_member_center_btn(self):
+        self.automator.click_element('会员中心', by='text')
+
+    def _member_center_btn_exists(self):
+        return self.automator.element_exists('会员中心', by='text')
+
+    def main_process(self):
+        self.open_wechat()
+        if not self.search_bar_exists():
+            self.enter_search_page()
+            self.input_search_content("jimugame")
+        retry_times = 0
+        while not self._member_center_btn_exists():
+            time.sleep(1)
+            self.click_jimu_text_btn()
+            retry_times += 1
+            if retry_times > 5:
+                break
+        retry_times = 0
+        while not self._member_center_btn_exists():
+            time.sleep(1)
+            self.click_member_center_btn()
+            retry_times += 1
+            if retry_times > 5:
+                break
+
+
 class ChaLiXiongProcess(QingNiaoAutoProcess):
     """
         查理熊
@@ -66,26 +101,26 @@ class ChaLiXiongProcess(QingNiaoAutoProcess):
     def main_process(self):
         self.open_wechat()
         if not self.search_bar_exists():
-            self.enter_search_page()    # 搜索
-        self.input_search_content("chalixiong") # 输入搜索chalixiong
+            self.enter_search_page()  # 搜索
+        self.input_search_content("chalixiong")  # 输入搜索chalixiong
         retry_times = 0
         while not self.reserve_btn_exists():
             time.sleep(2)
-            self.click_clx_text_btn()   # 点击查理熊电竞馆搜索结果
+            self.click_clx_text_btn()  # 点击查理熊电竞馆搜索结果
             retry_times += 1
             if retry_times > 5:
                 break
         retry_times = 0
         while not self.reserve_online_book_btn_exists():
             time.sleep(2)
-            self.click_reserve_btn()    # 点击在线预定
+            self.click_reserve_btn()  # 点击在线预定
             retry_times += 1
             if retry_times > 5:
                 break
         retry_times = 0
         while self.reserve_online_book_btn_exists():
             time.sleep(2)
-            self.click_reserve_online_book_btn() # 点击在线订座,有就点
+            self.click_reserve_online_book_btn()  # 点击在线订座,有就点
             retry_times += 1
             if retry_times > 5:
                 break
@@ -167,7 +202,7 @@ class LeYouProcess(QingNiaoAutoProcess):
             self.click_fast_enter_btn()
             retry_times += 1
             if retry_times > 5:
-                 break
+                break
         retry_times = 0
         while self.one_short_reserve_btn_exists():
             time.sleep(1)
