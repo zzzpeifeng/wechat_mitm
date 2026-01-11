@@ -48,31 +48,62 @@ class JiMuProcess(QingNiaoAutoProcess):
          吉姆电竞
     """
 
+    def click_huakaifuggui_text_btn(self):
+        self.automator.click_element('//*[@text="花开富贵"]', by='xpath')
+
+    def huakaifugui_btn_exists(self):
+        return self.automator.element_exists('花开富贵', by='text')
+
     def click_jimu_text_btn(self):
         self.automator.click_element('吉姆电竞', by='text')
 
+    def jimu_btn_exists(self):
+        return self.automator.element_exists('吉姆电竞', by='text')
+
+    def click_jimu_serve_btn(self):
+        return self.automator.click_element('//*[@resource-id="com.tencent.mm:id/ani"]', by='xpath')
+
+    def jimu_serve_btn_exists(self):
+        return self.automator.element_exists('//*[@resource-id="com.tencent.mm:id/ani"]', by='xpath')
+
     def click_member_center_btn(self):
-        self.automator.click_element('会员中心', by='text')
+        self.automator.click_element('会员中心 @', by='text')
 
     def _member_center_btn_exists(self):
-        return self.automator.element_exists('会员中心', by='text')
+        return self.automator.element_exists('会员中心 @', by='text')
 
     def main_process(self):
         self.open_wechat()
         if not self.search_bar_exists():
             self.enter_search_page()
-            self.input_search_content("jimudianjing")
+            self.input_search_content("huakaifugui")
         retry_times = 0
-        while not self._member_center_btn_exists():
+        while not self.jimu_btn_exists():
             time.sleep(1)
-            self.click_jimu_text_btn()
+            self.click_huakaifuggui_text_btn()  # 点击花开富贵
             retry_times += 1
             if retry_times > 5:
                 break
         retry_times = 0
+        while not self.jimu_serve_btn_exists():
+            time.sleep(1)
+            self.click_jimu_text_btn()  # 点击吉姆电竞入口
+            retry_times += 1
+            if retry_times > 5:
+                break
+
+        retry_times = 0
         while not self._member_center_btn_exists():
             time.sleep(1)
-            self.click_member_center_btn()
+            self.click_jimu_serve_btn()  # 点击服务
+            retry_times += 1
+            if retry_times > 5:
+                break
+
+        retry_times = 0
+        while self._member_center_btn_exists():
+            time.sleep(1)
+            self.click_member_center_btn()  # 点击会员中心
             retry_times += 1
             if retry_times > 5:
                 break
