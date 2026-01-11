@@ -72,11 +72,15 @@ def prepare_data_for_excel(collection_data):
     
     # 为每个小时填充数据
     for hour in hours:
-        hour_key = hour.split(':')[0].lstrip('0') or '0'  # 去除前导零，例如 '0:00' -> '0'
+        # 修复：处理数据库中小时格式的匹配
+        hour_part = hour.split(':')[0]  # 提取小时部分，如 '0', '1', '2', '10', '11' 等
+        # 数据库中存储的格式是两位数带前导零的格式
+        hour_key = f"{int(hour_part):02d}"  # 转换为两位数格式，如 '0', '1' -> '00', '01'
+        
         hour_column = []
         
         for shop in all_shops:
-            # 检查该小时是否有此店铺的数据
+            # 检查该小时是否有此店铺的数据（尝试匹配数据库中的格式）
             if hour_key in collection_data['data'] and shop in collection_data['data'][hour_key]:
                 hour_column.append(collection_data['data'][hour_key][shop])
             else:
@@ -126,7 +130,7 @@ def sync_daily_data():
             # 文件已存在，使用openpyxl直接操作
             workbook = load_workbook(excel_path)
             
-            # 如果sheet已存在，删除它
+            # 如果sheet已存在，删除它（避免重复）
             if current_date in workbook.sheetnames:
                 del workbook[current_date]
             
