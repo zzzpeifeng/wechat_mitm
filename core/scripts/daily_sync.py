@@ -1,6 +1,7 @@
 import os
 import sys
 import json
+import psutil
 
 # 添加项目根目录到Python路径，以便正确导入模块
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
@@ -92,6 +93,89 @@ def prepare_data_for_excel(collection_data):
     return df
 
 
+def is_excel_running(file_path):
+    """检查指定Excel文件是否正在运行"""
+    try:
+        # 首先检查文件是否存在
+        if not os.path.exists(file_path):
+            return False
+        
+        # 在Windows系统上，最可靠的方法是尝试打开文件进行写入
+        # 如果无法打开，则文件很可能被Excel或其他程序占用
+        import platform
+        if platform.system().lower() == "windows":
+            try:
+                # 尝试以独占模式打开文件
+                with open(file_path, 'r+b') as f:
+                    pass  # 如果成功打开，说明文件未被占用
+                return False
+            except PermissionError:
+                # 权限错误表示文件被占用
+                return True
+            except OSError:
+                # 其他OSError也表明文件可能被占用
+                return True
+        else:
+            # 对于非Windows系统，使用psutil检查
+            try:
+                for proc in psutil.process_iter(['pid', 'name', 'open_files']):
+                    try:
+                        if proc.info['name'] and 'excel' in proc.info['name'].lower():
+                            if proc.info['open_files']:
+                                for open_file in proc.info['open_files']:
+                                    # open_file可能是字符串或os.stat_result对象
+                                    if hasattr(open_file, 'path'):
+                                        file_path_str = open_file.path
+                                    else:
+                                        file_path_str = str(open_file)
+                                        
+                                    if file_path_str.lower() == file_path.lower():
+                                        return True
+                    except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                        continue
+            except Exception:
+                pass
+            
+            # 备用检测方法：尝试创建临时副本
+            import tempfile
+            import shutil
+            try:
+                temp_path = file_path + ".tmp_check"
+                shutil.copy2(file_path, temp_path)
+                os.remove(temp_path)
+                return False
+            except (PermissionError, OSError):
+                return True
+            
+    except Exception as e:
+        print(f"检查Excel进程时发生错误: {str(e)}")
+        return False
+
+
+def check_and_wait_for_excel(file_path, timeout=30):
+    """检查Excel是否正在运行，如果是则等待或安全退出"""
+    if not os.path.exists(file_path):
+        return True  # 文件不存在，无需检查
+    
+    if not is_excel_running(file_path):
+        return True  # Excel未运行，可以继续
+    
+    print(f"警告: Excel文件 {file_path} 正在运行中，请关闭后重试或等待自动重试...")
+    
+    # 等待一段时间让用户关闭Excel
+    import time
+    for i in range(timeout):
+        time.sleep(1)
+        if not is_excel_running(file_path):
+            print("Excel文件已关闭，继续执行...")
+            return True
+        if i % 10 == 0 and i > 0:
+            print(f"仍在等待Excel关闭... ({i}/{timeout}秒)")
+    
+    print(f"超时: Excel文件 {file_path} 仍然在运行，安全退出程序")
+    return False
+
+
 def sync_daily_data():
     """主函数：同步每日数据到Excel文件"""
     # 确保result文件夹存在
@@ -101,6 +185,11 @@ def sync_daily_data():
     year_month = get_current_year_month()
     excel_filename = f"{year_month}.xlsx"
     excel_path = os.path.join(result_folder, excel_filename)
+    
+    # 检查Excel文件是否正在运行
+    if not check_and_wait_for_excel(excel_path):
+        print("由于Excel文件正在运行且超时，程序安全退出")
+        return
     
     # 获取当前日期作为sheet名
     current_date = get_current_date()
