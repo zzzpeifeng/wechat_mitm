@@ -30,7 +30,9 @@ def get_db_manager():
 
 def ensure_result_folder():
     """确保项目根目录存在result文件夹"""
-    result_path = os.path.join(os.getcwd(), 'result')
+    # 获取脚本所在目录的父目录（项目根目录）
+    project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    result_path = os.path.join(project_root, 'result')
     if not os.path.exists(result_path):
         os.makedirs(result_path)
     return result_path
