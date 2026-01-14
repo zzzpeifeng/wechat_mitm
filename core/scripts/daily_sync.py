@@ -58,7 +58,8 @@ def prepare_data_for_excel(collection_data):
     """
     if not collection_data or 'data' not in collection_data:
         # 如果没有数据，创建空的数据框架
-        hours = [f'{hour}:00' for hour in range(24)]
+        # 从12:00到23:00的12个小时
+        hours = [f'{hour}:00' for hour in range(12, 24)]
         df = pd.DataFrame(columns=['门店名称'] + hours)
         return df
 
@@ -70,7 +71,7 @@ def prepare_data_for_excel(collection_data):
     all_shops = sorted(list(all_shops))  # 排序以保持一致的顺序
     
     # 创建数据框架
-    hours = [f'{hour}:00' for hour in range(24)]  # 0:00 到 23:00
+    hours = [f'{hour}:00' for hour in range(12, 24)]  # 12:00 到 23:00
     df_data = {'门店名称': all_shops}
     
     # 为每个小时填充数据
@@ -231,7 +232,32 @@ def sync_daily_data():
             # 将DataFrame转换为行并写入工作表
             for row in dataframe_to_rows(excel_data, index=False, header=True):
                 worksheet.append(row)
-                
+            
+            # 自动调整列宽
+            for column in worksheet.columns:
+                max_length = 0
+                column_letter = column[0].column_letter
+                for cell in column:
+                    try:
+                        if len(str(cell.value)) > max_length:
+                            max_length = len(str(cell.value))
+                    except TypeError:
+                        pass
+                adjusted_width = min(max_length + 2, 100)  # 最大宽度限制为50
+                worksheet.column_dimensions[column_letter].width = adjusted_width
+            
+            # 设置第一行（表头）的样式：黑色背景，白色字体，加粗
+            from openpyxl.styles import Font, PatternFill
+            header_fill = PatternFill(start_color='FF000000', end_color='FF000000', fill_type='solid')  # 黑色背景
+            header_font = Font(color='FFFFFFFF', bold=True)  # 白色字体，加粗
+            
+            for cell in worksheet[1]:  # 获取第一行的所有单元格
+                cell.fill = header_fill
+                cell.font = header_font
+            
+            # 冻结第一行和第一列
+            worksheet.freeze_panes = 'B2'
+            
             # 保存工作簿
             workbook.save(excel_path)
             

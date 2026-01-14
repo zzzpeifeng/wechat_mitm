@@ -367,9 +367,10 @@ class DBZDataCollector:
                     remaining_data = remaining_limit_result["data"]["data"]
                     if isinstance(remaining_data, dict):
                         # 使用剩余限制接口提供的准确数据
-                        online_seats = remaining_data.get("machineCount", 0)
+
                         offline_seats = remaining_data.get("remainingCount", 0)
-                        total_seats = online_seats + offline_seats
+                        total_seats = remaining_data.get("machineCount", 0)
+                        online_seats = total_seats - offline_seats
                     else:
                         # 如果剩余限制数据不是字典，回退到机器数据分析
                         self._calculate_seats_from_machines(machines_result)
