@@ -432,7 +432,8 @@ class DBZDataCollector:
                     if machine["state"] == 1:
                         # 检查是否有用户在线（通过netbarOnline字段）
                         netbar_online = machine.get("netbarOnline")
-                        if netbar_online is not None:  # 有用户在线
+                        netbar_area = machine.get("netbarArea")
+                        if netbar_online is not None and netbar_area.get('areatype') is not None:  # 有用户在线
                             online_seats += 1
                         else:  # 没有用户在线，但机器可用
                             offline_seats += 1
@@ -599,16 +600,16 @@ class DBZDataCollector:
                 for netbar_data in brand_data["netbars"]:
                     netbar_info = netbar_data["netbar_info"]
                     seats_stats = netbar_data["seats_stats"]
-                    
+
                     # 构建键值对，格式与QNDataCollector.update_db_online_data相同
                     netbar_key = f'{netbar_info.get("id")}-{netbar_info.get("name", "")}'
                     online_value = f'{str(seats_stats["online"])} / {str(seats_stats["total"])}'
                     upload_data.update({netbar_key: online_value})
-            
+
             # 调用数据库管理器的insert_online_rate_v2方法
             success = self.db_manager.insert_online_rate_v2(upload_data)
             logging.info(f"数据保存到MongoDB完成，成功: {success}")
-            
+
             return success
         except Exception as e:
             logging.error(f"保存数据到MongoDB时发生异常: {e}")
