@@ -358,25 +358,37 @@ class DBZDataCollector:
                 online_seats = 0
                 offline_seats = 0
 
-                # 优先使用剩余限制信息中的数据（更准确）
-                if (remaining_limit_result.get("success") and
-                        remaining_limit_result.get("data") and
-                        isinstance(remaining_limit_result["data"], dict) and
-                        "data" in remaining_limit_result["data"]):
+                # 优先使用机器信息中的数据
+                if (machines_result.get("success") and
+                        machines_result.get("data") and
+                        isinstance(machines_result["data"], dict) and
+                        "data" in machines_result["data"]):
 
-                    remaining_data = remaining_limit_result["data"]["data"]
-                    if isinstance(remaining_data, dict):
-                        # 使用剩余限制接口提供的准确数据
-
-                        offline_seats = remaining_data.get("remainingCount", 0)
-                        total_seats = remaining_data.get("machineCount", 0)
-                        online_seats = total_seats - offline_seats
-                    else:
-                        # 如果剩余限制数据不是字典，回退到机器数据分析
-                        self._calculate_seats_from_machines(machines_result)
-                else:
-                    # 如果没有剩余限制信息，回退到机器数据分析
                     online_seats, offline_seats, total_seats = self._calculate_seats_from_machines(machines_result)
+                else:
+                    # 如果没有机器信息，回退到剩余限制数据分析
+                    if (remaining_limit_result.get("success") and
+                            remaining_limit_result.get("data") and
+                            isinstance(remaining_limit_result["data"], dict) and
+                            "data" in remaining_limit_result["data"]):
+
+                        remaining_data = remaining_limit_result["data"]["data"]
+                        if isinstance(remaining_data, dict):
+                            # 使用剩余限制接口提供的数据
+
+                            offline_seats = remaining_data.get("remainingCount", 0)
+                            total_seats = remaining_data.get("machineCount", 0)
+                            online_seats = total_seats - offline_seats
+                        else:
+                            # 如果都没有数据，返回默认值
+                            online_seats = 0
+                            offline_seats = 0
+                            total_seats = 0
+                    else:
+                        # 如果都没有数据，返回默认值
+                        online_seats = 0
+                        offline_seats = 0
+                        total_seats = 0
 
                 processed_brand["netbars"].append({
                     "netbar_info": netbar_info,
@@ -425,7 +437,7 @@ class DBZDataCollector:
                         else:  # 没有用户在线，但机器可用
                             offline_seats += 1
 
-        total_seats = online_seats + offline_seats
+        total_seats = len(machines_result["data"]["data"])
         return online_seats, offline_seats, total_seats
 
     def format_for_feishu(self, processed_data: List[Dict[str, Any]]) -> List[List[str]]:
