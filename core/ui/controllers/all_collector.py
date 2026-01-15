@@ -136,9 +136,6 @@ class AllCollector:
             # 调用QNDataCollector获取青鸟数据
             # self._collect_qn_data()
 
-            if self.log_callback:
-                self.log_callback("开始执行大巴掌平台数据收集任务...")
-
             # 调用大巴掌平台数据收集功能
             self._collect_dbz_data()
 
