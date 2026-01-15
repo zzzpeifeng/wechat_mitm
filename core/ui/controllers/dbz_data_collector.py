@@ -427,7 +427,7 @@ class DBZDataCollector:
                         # 检查是否有用户在线（通过netbarOnline字段）
                         netbar_online = machine.get("netbarOnline")
                         netbar_area = machine.get("netbarArea")
-                        if netbar_online is not None and netbar_area.get('areatype') is not None:  # 有用户在线
+                        if netbar_online is not None:  # 有用户在线
                             online_seats += 1
                         else:  # 没有用户在线，但机器可用
                             offline_seats += 1
