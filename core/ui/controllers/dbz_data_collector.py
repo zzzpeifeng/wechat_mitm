@@ -383,12 +383,6 @@ class DBZDataCollector:
                             # 如果都没有数据，返回默认值
                             online_seats = 0
                             offline_seats = 0
-                            total_seats = 0
-                    else:
-                        # 如果都没有数据，返回默认值
-                        online_seats = 0
-                        offline_seats = 0
-                        total_seats = 0
 
                 processed_brand["netbars"].append({
                     "netbar_info": netbar_info,
