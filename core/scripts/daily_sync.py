@@ -233,8 +233,9 @@ def sync_daily_data():
             for row in dataframe_to_rows(excel_data, index=False, header=True):
                 worksheet.append(row)
             
-            # 自动调整列宽
-            for column in worksheet.columns:
+            # 自动调整列宽和设置样式
+            from openpyxl.styles import Alignment
+            for idx, column in enumerate(worksheet.columns):
                 max_length = 0
                 column_letter = column[0].column_letter
                 for cell in column:
@@ -243,8 +244,18 @@ def sync_daily_data():
                             max_length = len(str(cell.value))
                     except TypeError:
                         pass
-                adjusted_width = min(max_length + 2, 100)  # 最大宽度限制为50
+                
+                # 第一列保持原有宽度调整方式，其他列最小宽度设为100
+                if idx == 0:  # 第一列
+                    adjusted_width = min(max(max_length + 2, 10), 80)
+                else:  # 其他列
+                    adjusted_width = max(max_length + 2, 20)  # 最小宽度为30
                 worksheet.column_dimensions[column_letter].width = adjusted_width
+                
+                # 为除第一列外的所有单元格设置居中对齐
+                if idx > 0:
+                    for cell in column:
+                        cell.alignment = Alignment(horizontal='center', vertical='center')
             
             # 设置第一行（表头）的样式：黑色背景，白色字体，加粗
             from openpyxl.styles import Font, PatternFill
@@ -254,6 +265,8 @@ def sync_daily_data():
             for cell in worksheet[1]:  # 获取第一行的所有单元格
                 cell.fill = header_fill
                 cell.font = header_font
+                # 表头也设置居中对齐（包括第一列）
+                cell.alignment = Alignment(horizontal='center', vertical='center')
             
             # 冻结第一行和第一列
             worksheet.freeze_panes = 'B2'
