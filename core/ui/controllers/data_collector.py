@@ -129,7 +129,7 @@ class QNDataCollector:
         upload_data = {}
         for index, store in enumerate(data_dict.get('offline_stores', []), 1):
             # 计算总座位数
-            total_seats = store.get('online_machine_count', 0) + store.get('offline_machine_count', 0)
+            total_seats = store.get('machine_total', 0)
             off_store_key = f'{store.get('offline_store_id')}-{store.get('offline_store_name', '')}'
             online_value = f'{str(store.get('online_machine_count', 0))} / {str(total_seats)}'
             upload_data.update({off_store_key: online_value})
@@ -157,7 +157,7 @@ class QNDataCollector:
                 unique_id = str(uuid.uuid4())
 
                 # 计算总座位数
-                total_seats = store.get('online_machine_count', 0) + store.get('offline_machine_count', 0)
+                total_seats = store.get('machine_total', 0)
 
                 row = [
                     unique_id,  # ID（使用UUID保证唯一性）
@@ -261,6 +261,9 @@ class QNDataCollector:
             self.log(f"{store.get('name')}获取门店订座信息成功,开始组装信息")
             offline_online_machine_count = 0
             offline_offline_machine_count = 0
+
+            ext_info = temp_book_seat_info.get('ext')
+
             for direct_item in temp_book_seat_info.get('data'):
                 # 组装区域信息
                 if direct_item.get('type') != "0":
@@ -279,9 +282,8 @@ class QNDataCollector:
                 'offline_store_id': store.get('id'),
                 'offline_store_name': store.get('name'),
                 'areas': area_list,
-                'online_machine_count': offline_online_machine_count, # 在线数
-                'offline_machine_count': offline_offline_machine_count, # 离线数
-
+                'online_machine_count': ext_info.get('online_num'), # 在线数
+                'machine_total': ext_info.get('total'), # 总数
             }
             # 组装店铺信息
             data_dict['offline_stores'].append(offline_store_dict)
