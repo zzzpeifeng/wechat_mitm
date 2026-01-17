@@ -44,6 +44,19 @@ def get_current_year_month():
     return now.strftime('%Y-%m')
 
 
+def get_shop_order():
+    """获取门店排序映射字典"""
+    project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    shop_order_path = os.path.join(project_root, 'shop_order.json')
+    
+    if os.path.exists(shop_order_path):
+        with open(shop_order_path, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    else:
+        print(f"警告: 门店排序文件不存在 {shop_order_path}，使用默认排序")
+        return {}
+
+
 def get_current_date():
     """获取当前日期，格式为yyyy-mm-dd"""
     now = datetime.now()
@@ -56,6 +69,9 @@ def prepare_data_for_excel(collection_data):
     :param collection_data: MongoDB中的数据
     :return: DataFrame格式的数据
     """
+    # 获取门店排序映射
+    shop_order_map = get_shop_order()
+    
     if not collection_data or 'data' not in collection_data:
         # 如果没有数据，创建空的数据框架
         # 从12:00到23:00的12个小时
@@ -68,7 +84,27 @@ def prepare_data_for_excel(collection_data):
     for hour_data in collection_data['data'].values():
         all_shops.update(hour_data.keys())
     
-    all_shops = sorted(list(all_shops))  # 排序以保持一致的顺序
+    # 使用预定义的门店排序，如果没有在排序文件中的门店则按字母顺序追加
+    all_shops_list = list(all_shops)
+    # 先按预定义排序，再把不在预定义排序中的门店按字母顺序排列
+    ordered_shops = []
+    unordered_shops = []
+    
+    for shop in all_shops_list:
+        if shop in shop_order_map:
+            ordered_shops.append((shop_order_map[shop], shop))
+        else:
+            unordered_shops.append(shop)
+    
+    # 按照预定义顺序排序
+    ordered_shops.sort(key=lambda x: x[0])
+    ordered_shop_names = [shop for _, shop in ordered_shops]
+    
+    # 未定义顺序的门店按字母排序
+    unordered_shops.sort()
+    
+    # 合并最终排序结果
+    all_shops = ordered_shop_names + unordered_shops
     
     # 创建数据框架
     hours = [f'{hour}:00' for hour in range(12, 24)]  # 12:00 到 23:00
