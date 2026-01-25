@@ -67,10 +67,10 @@ class JiMuProcess(QingNiaoAutoProcess):
         return self.automator.element_exists('//*[@resource-id="com.tencent.mm:id/ani"]', by='xpath')
 
     def click_member_center_btn(self):
-        self.automator.click_element('会员中心 @', by='text')
+        self.automator.click_element('会员中心', by='text')
 
     def _member_center_btn_exists(self):
-        return self.automator.element_exists('会员中心 @', by='text')
+        return self.automator.element_exists('会员中心', by='text')
 
     def main_process(self):
         self.open_wechat()
