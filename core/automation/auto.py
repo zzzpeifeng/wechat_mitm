@@ -12,7 +12,7 @@ class AndroidAutomation:
     使用uiautomator2操作安卓设备的自动化类
     """
 
-    def __init__(self, device_id: Optional[str] = None):
+    def __init__(self, device_id: Optional[str] = 'emulator-5558'):
         """
         初始化安卓自动化类
 
