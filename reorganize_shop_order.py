@@ -17,6 +17,7 @@ def reorganize_shop_order(input_path, output_path):
     
     # 定义关键词分组规则
     keyword_groups = [
+        ("吉姆电竞", "jimudianjing"),
         ("查理熊", "charlie_bear"),
         ("乐游", "leyou"),
         ("青鸟", "qingniao"),
@@ -81,7 +82,7 @@ def reorganize_shop_order(input_path, output_path):
     
     # 按分组顺序添加门店
     group_priority = [
-        "charlie_bear", "leyou", "qingniao", "naota", "xiaonannan", 
+        "jimudianjing", "charlie_bear", "leyou", "qingniao", "naota", "xiaonannan", 
         "mojie", "woniu", "xianfeng", "handu", "tianji", "xinghai", 
         "jiye", "banma", "wukong", "tianyin", "siji", "xinchao", 
         "jingyu", "fengchao", "baidu", "dianfeng", "yishidai", 
@@ -135,6 +136,7 @@ def display_grouped_shops(shop_order_dict):
     
     # 定义关键词映射
     keyword_mapping = {
+        "吉姆电竞": "jimudianjing",
         "查理熊": "charlie_bear",
         "乐游": "leyou",
         "青鸟": "qingniao",
