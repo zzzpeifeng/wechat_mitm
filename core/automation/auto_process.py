@@ -76,26 +76,14 @@ class JiMuProcess(QingNiaoAutoProcess):
         self.open_wechat()
         if not self.search_bar_exists():
             self.enter_search_page()
-            self.input_search_content("huakaifugui")
-        retry_times = 0
-        while not self.jimu_btn_exists():
-            time.sleep(1)
-            self.click_huakaifuggui_text_btn()  # 点击花开富贵
-            retry_times += 1
-            if retry_times > 5:
-                break
-        retry_times = 0
-        while not self.jimu_serve_btn_exists():
-            time.sleep(1)
-            self.click_jimu_text_btn()  # 点击吉姆电竞入口
-            retry_times += 1
-            if retry_times > 5:
-                break
+            self.input_search_content("jimudianjing")
+
+
 
         retry_times = 0
         while not self._member_center_btn_exists():
             time.sleep(1)
-            self.click_jimu_serve_btn()  # 点击服务
+            self.click_jimu_text_btn()  # 点击吉姆电竞搜索结果
             retry_times += 1
             if retry_times > 5:
                 break
