@@ -27,7 +27,7 @@ class QNDataCollector:
     """
 
     def __init__(self):
-        self.host = 'chain36226.tmwanba.com'
+        self.host = None
         self.db_manager = get_db_manager()
         self.cookie_header = None
         self.session = requests.Session()
@@ -50,17 +50,20 @@ class QNDataCollector:
                 logger.warning("无法连接到数据库，使用默认域名列表")
                 return
 
-        # 获取 target_domains 集合
+        # 获取 chain_cookies 集合中的唯一文档（不再按 host 查询）
         if self.db_manager.db is not None:
             cookie_collection = self.db_manager.db["chain_cookies"]
-            cookie_document = cookie_collection.find_one({"host": self.host})
+            # 由于现在集合中只有一个文档，直接获取第一个文档即可
+            cookie_document = cookie_collection.find_one({})
             if cookie_document:
+                # 更新当前实例的 host 为数据库中存储的 host
+                self.host = cookie_document.get("host", self.host)
                 self.cookie_header = parse_cookie_header(cookie_document["cookie_header"])
                 for key, value in self.cookie_header.items():
                     self.session.cookies.set(key, value)
                 logger.info(f"成功加载域名 {self.host} 的 cookie:{self.cookie_header}")
             else:
-                logger.warning(f"域名 {self.host} 的 cookie 不存在")
+                logger.warning(f"没有找到 cookie 数据")
         else:
             logger.warning("数据库连接失败，无法加载 cookie")
 

@@ -287,16 +287,42 @@ class DianfengVSProcess(QingNiaoAutoProcess):
     def click_dianfeng_item(self):
         self.automator.click_element('巅峰VS电竞', by='text')
 
+    def dianfeng_item_exists(self):
+        return self.automator.element_exists('巅峰VS电竞', by='text')
+
     def click_nearby_offstore_enter_btn(self):
         self.automator.click_element('附近门店', by='text')
+
+    def nearby_offstore_btn_exists(self):
+        return self.automator.element_exists('附近门店', by='text')
 
     def main_process(self):
         self.open_wechat()
         if not self.search_bar_exists():
             self.enter_search_page()
         self.input_search_content('dianfeng')
-        self.click_dianfeng_item()
-        self.click_nearby_offstore_enter_btn()
+        
+        # 点击搜索结果中的巅峰VS电竞
+        retry_times = 0
+        while not self.nearby_offstore_btn_exists():  # 当未找到附近门店按钮时继续循环
+            time.sleep(2)
+            if self.dianfeng_item_exists():
+                self.click_dianfeng_item()  # 点击巅峰VS电竞搜索结果
+            else:
+                print("未找到巅峰VS电竞搜索结果")
+                break
+            retry_times += 1
+            if retry_times > 5:
+                break
+        
+        # 点击附近门店按钮
+        retry_times = 0
+        while self.nearby_offstore_btn_exists():  # 当找到附近门店按钮时继续循环点击
+            time.sleep(2)
+            self.click_nearby_offstore_enter_btn()  # 点击附近门店
+            retry_times += 1
+            if retry_times > 5:
+                break
 
 
 if __name__ == '__main__':

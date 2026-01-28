@@ -84,27 +84,30 @@ def prepare_data_for_excel(collection_data):
     for hour_data in collection_data['data'].values():
         all_shops.update(hour_data.keys())
     
-    # 使用预定义的门店排序，如果没有在排序文件中的门店则按字母顺序追加
-    all_shops_list = list(all_shops)
-    # 先按预定义排序，再把不在预定义排序中的门店按字母顺序排列
-    ordered_shops = []
-    unordered_shops = []
+    # 分离包含“吉姆电竞”的门店和其他门店
+    jimu_shops = [shop for shop in all_shops if '吉姆电竞' in shop]
+    other_shops = [shop for shop in all_shops if '吉姆电竞' not in shop]
     
-    for shop in all_shops_list:
+    # 使用预定义的门店排序，如果没有在排序文件中的门店则按字母顺序追加
+    # 对非吉姆电竞门店进行排序
+    other_ordered_shops = []
+    other_unordered_shops = []
+    
+    for shop in other_shops:
         if shop in shop_order_map:
-            ordered_shops.append((shop_order_map[shop], shop))
+            other_ordered_shops.append((shop_order_map[shop], shop))
         else:
-            unordered_shops.append(shop)
+            other_unordered_shops.append(shop)
     
     # 按照预定义顺序排序
-    ordered_shops.sort(key=lambda x: x[0])
-    ordered_shop_names = [shop for _, shop in ordered_shops]
+    other_ordered_shops.sort(key=lambda x: x[0])
+    other_ordered_shop_names = [shop for _, shop in other_ordered_shops]
     
     # 未定义顺序的门店按字母排序
-    unordered_shops.sort()
+    other_unordered_shops.sort()
     
-    # 合并最终排序结果
-    all_shops = ordered_shop_names + unordered_shops
+    # 合并最终排序结果：吉姆电竞门店优先，然后是其他门店
+    all_shops = jimu_shops + other_ordered_shop_names + other_unordered_shops
     
     # 创建数据框架
     hours = [f'{hour}:00' for hour in range(12, 24)]  # 12:00 到 23:00
@@ -247,6 +250,20 @@ def sync_daily_data():
         # 准备要写入Excel的数据
         excel_data = prepare_data_for_excel(date_data)
         
+        # 计算包含'吉姆电竞'的门店数量，用于冻结窗格
+        if date_data and 'data' in date_data:
+            # 提取所有门店名称
+            all_shops_set = set()
+            for hour_data in date_data['data'].values():
+                all_shops_set.update(hour_data.keys())
+            
+            # 分离包含“吉姆电竞”的门店
+            all_shops_list = list(all_shops_set)
+            jimu_shops = [shop for shop in all_shops_list if '吉姆电竞' in shop]
+            jimu_row_count = len(jimu_shops)
+        else:
+            jimu_row_count = 0
+        
         # 检查Excel文件是否存在，如果不存在则创建
         if not os.path.exists(excel_path):
             print(f"创建新的Excel文件: {excel_path}")
@@ -304,8 +321,16 @@ def sync_daily_data():
                 # 表头也设置居中对齐（包括第一列）
                 cell.alignment = Alignment(horizontal='center', vertical='center')
             
-            # 冻结第一行和第一列
-            worksheet.freeze_panes = 'B2'
+            # 计算需要冻结的行数：表头1行 + 包含'吉姆电竞'的门店数量
+            freeze_row_index = 1 + jimu_row_count  # 表头1行 + 吉姆电竞门店数量
+            
+            if freeze_row_index > 1:
+                # 冻结前freeze_row_index行和第一列
+                freeze_cell = f'B{freeze_row_index + 1}'  # 冻结到吉姆电竞门店之后的行
+                worksheet.freeze_panes = freeze_cell
+            else:
+                # 如果没有吉姆电竞门店，只冻结第一行和第一列
+                worksheet.freeze_panes = 'B2'
             
             # 保存工作簿
             workbook.save(excel_path)

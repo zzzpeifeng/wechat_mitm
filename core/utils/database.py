@@ -82,12 +82,13 @@ class MongoDBManager:
     def insert_chain_data(self, host: str, domain: str, chain_id: str, cookie_header: str,
                           timestamp: datetime = None) -> bool:
         """
-        插入 chain 数据到数据库
+        插入 chain 数据到数据库，确保集合中只存在一个文档
 
         Args:
+            host (str): 请求主机
             domain (str): 请求域名
-            chain_value (str): 从 cookie 中提取的 chain 值
-            cookie (str): 完整的 cookie 字符串
+            chain_id (str): chain ID
+            cookie_header (str): 完整的 cookie 字符串
             timestamp (datetime): 时间戳，默认为当前时间
 
         Returns:
@@ -109,25 +110,22 @@ class MongoDBManager:
                 "created_at": datetime.now()
             }
 
-            # 插入数据
-            logging.info(f"Preparing to insert data")
-            # 使用 upsert 操作：如果存在相同 domain 的数据则更新，否则插入
-            result = self.collection.update_one(
-                {"host": host},  # 查询条件
-                {"$set": document},  # 更新数据
-                upsert=True  # 如果不存在则插入
-            )
-            if result.upserted_id:
-                logging.info(f"Successfully inserted new data, ID: {result.upserted_id}")
-            elif result.modified_count > 0:
-                logging.info(f"Successfully updated data for domain {domain}")
+            # 检查集合中是否已有文档
+            existing_doc = self.collection.find_one({})
+            
+            if existing_doc:
+                # 如果存在文档，则替换整个文档
+                result = self.collection.replace_one({}, document)
+                logging.info(f"Successfully replaced existing data, Matched: {result.matched_count}, Modified: {result.modified_count}")
             else:
-                logging.info(f"No changes made, data for domain {domain} already exists and is unchanged")
+                # 如果不存在文档，则插入新文档
+                result = self.collection.insert_one(document)
+                logging.info(f"Successfully inserted new data, ID: {result.inserted_id}")
 
             return True
 
         except Exception as e:
-            logging.error(f"Failed to insert data: {str(e)}")
+            logging.error(f"Failed to insert/replace data: {str(e)}")
             return False
 
     def insert_request_data(self, data: Dict[str, Any]) -> bool:
